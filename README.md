@@ -4,3 +4,4 @@ A place where I just put code of stuff I made with AI
 ## Projects
 
 - [Tabtone](tabtone/) — One-click Chrome tab audio recorder with local MP3 encoding and automatic filenames.
+- [Tabflow](tabflow/) — Égaliseur par onglet, volume booster et effets audio locaux pour Chrome.
