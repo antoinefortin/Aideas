@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Footfall</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --ink: #1d2733;
+        --muted: #5b6878;
+        --glass: rgba(255, 255, 255, 0.62);
+        --accent: #8fa9c4;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #dbe4ee; }
+      body { font-family: Inter, system-ui, -apple-system, sans-serif; color: var(--ink); }
+      #app, canvas { display: block; width: 100%; height: 100%; }
+      canvas { touch-action: none; }
+
+      .hud {
+        position: fixed; top: 16px; left: 16px; max-width: min(420px, calc(100vw - 32px));
+        padding: 14px 16px 12px; border-radius: 12px;
+        background: var(--glass); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+        box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 8px 30px rgba(30, 45, 70, 0.12);
+        pointer-events: none; user-select: none;
+      }
+      .hud h1 { margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: 0.02em; }
+      .hud h1 span { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: #ff7a45; vertical-align: 1px; }
+      .hud p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+      .hud kbd { font: 500 11px Inter, system-ui, sans-serif; padding: 1px 5px; border-radius: 4px; background: rgba(0,0,0,.07); color: var(--ink); }
+      #stats { margin-top: 8px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink); }
+      #status { margin-top: 2px; font-size: 11px; color: var(--muted); }
+
+      #loader {
+        position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+        padding: 10px 16px; border-radius: 999px; font-size: 13px;
+        background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 6px 24px rgba(30, 45, 70, 0.14); transition: opacity .4s; max-width: calc(100vw - 32px); text-align: center;
+      }
+      #loader.hidden { opacity: 0; pointer-events: none; }
+      #loader.error { color: #a5321b; }
+
+      body.dragging::after {
+        content: 'Drop your Mixamo character (.fbx with skin, or .glb)';
+        position: fixed; inset: 12px; display: grid; place-items: center;
+        border: 2px dashed rgba(29, 39, 51, 0.45); border-radius: 18px;
+        background: rgba(255,255,255,.35); font-size: 16px; font-weight: 500; pointer-events: none;
+      }
+
+      body .lil-gui { --background-color: rgba(255,255,255,.72); --text-color: #1d2733; --title-background-color: rgba(255,255,255,.85);
+        --title-text-color: #1d2733; --widget-color: rgba(29,39,51,.09); --hover-color: rgba(29,39,51,.15); --focus-color: rgba(29,39,51,.2);
+        --number-color: #2a5d8f; --string-color: #2a5d8f; --font-family: Inter, system-ui, sans-serif; }
+      body .lil-gui.root { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 10px; overflow: hidden; top: 16px !important; right: 16px !important; }
+
+      @media (max-width: 700px) {
+        .hud { top: 10px; left: 10px; padding: 10px 12px; }
+        .hud p.hint { display: none; }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div class="hud">
+      <h1><span></span>Footfall</h1>
+      <p class="hint">Click the ground to send the walker there · <b>right-click</b> (or <kbd>⇧</kbd>-click) to throw a snowball there · <kbd>T</kbd> throw ahead · <kbd>R</kbd> walk/run · <kbd>C</kbd> clear · drag to orbit.
+        Drop a Mixamo <b>.fbx</b> (with skin + a walk clip) to swap the character.</p>
+      <div id="stats">—</div>
+      <div id="status"></div>
+    </div>
+    <div id="loader">Loading…</div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
