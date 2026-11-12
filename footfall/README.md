@@ -4,7 +4,7 @@ A three.js scene where a Mixamo-rigged character walks across snow, sand or mud 
 
 ## Run it
 
-**In the browser, straight from this repo:** https://raw.githack.com/antoinefortin/Aideas/main/footfall/index.html
+**Live (GitHub Pages):** https://antoinefortin.github.io/Aideas/footfall/
 
 **Locally, in one command** (fetches only this folder, then serves it and opens the browser — needs git and Python 3):
 
