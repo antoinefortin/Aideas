@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wake</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+      :root { --ink: #16212c; --muted: #4f5d6b; --glass: rgba(255, 255, 255, 0.64); }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #cfe0ee; }
+      body { font-family: Inter, system-ui, -apple-system, sans-serif; color: var(--ink); }
+      #app, canvas { display: block; width: 100%; height: 100%; }
+      canvas { touch-action: none; }
+
+      .glass {
+        background: var(--glass); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+        box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 8px 30px rgba(20, 35, 55, 0.14);
+      }
+      .hud { position: fixed; top: 16px; left: 16px; max-width: min(430px, calc(100vw - 32px)); padding: 14px 16px 12px;
+        border-radius: 12px; pointer-events: none; user-select: none; }
+      .hud h1 { margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+      .hud h1 span { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: #2fa4c9; vertical-align: 1px; }
+      .hud p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+      .hud kbd { font: 500 11px Inter, system-ui, sans-serif; padding: 1px 5px; border-radius: 4px; background: rgba(0,0,0,.07); color: var(--ink); }
+      #blurb { margin-top: 8px; font-size: 12.5px; color: var(--ink); font-style: italic; }
+      #stats { margin-top: 4px; font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+      #presets {
+        position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+        display: flex; gap: 6px; padding: 6px; border-radius: 14px; max-width: calc(100vw - 32px);
+        overflow-x: auto; scrollbar-width: none;
+      }
+      #presets::-webkit-scrollbar { display: none; }
+      .chip {
+        flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px 7px 8px; border: 0; border-radius: 9px;
+        font: 500 12px Inter, system-ui, sans-serif; color: var(--ink); background: rgba(255,255,255,.55); cursor: pointer;
+        transition: background .15s, transform .15s;
+      }
+      .chip:hover { background: rgba(255,255,255,.9); }
+      .chip.active { background: #16212c; color: #fff; }
+      .chip i { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,.7), 0 0 8px var(--glow); }
+
+      #loader { position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%); padding: 10px 16px; border-radius: 999px;
+        font-size: 13px; transition: opacity .4s; max-width: calc(100vw - 32px); text-align: center; }
+      #loader.hidden { display: none; }
+      #loader.error { color: #a5321b; }
+
+      body.dragging::after {
+        content: 'Drop your Mixamo character (.fbx with skin, or .glb)'; position: fixed; inset: 12px; display: grid; place-items: center;
+        border: 2px dashed rgba(22, 33, 44, .45); border-radius: 18px; background: rgba(255,255,255,.35); font-size: 16px; font-weight: 500; pointer-events: none;
+      }
+
+      body .lil-gui { --background-color: rgba(255,255,255,.74); --text-color: #16212c; --title-background-color: rgba(255,255,255,.88);
+        --title-text-color: #16212c; --widget-color: rgba(22,33,44,.09); --hover-color: rgba(22,33,44,.15); --focus-color: rgba(22,33,44,.2);
+        --number-color: #1f6a8f; --string-color: #1f6a8f; --font-family: Inter, system-ui, sans-serif; }
+      body .lil-gui.root { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 10px; overflow: hidden; top: 16px !important; right: 16px !important; }
+
+      @media (max-width: 760px) {
+        .hud { top: 10px; left: 10px; padding: 10px 12px; }
+        .hud p.hint { display: none; }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div class="hud glass">
+      <h1><span></span>Wake</h1>
+      <p class="hint">Click the water to send the walker there · <b>right-click</b> (or <kbd>⇧</kbd>-click) to drop a stone ·
+        <kbd>S</kbd> stone ahead · <kbd>R</kbd> walk/run · <kbd>1</kbd>–<kbd>9</kbd> / <kbd>[</kbd> <kbd>]</kbd> presets · <kbd>C</kbd> calm · drag to orbit.</p>
+      <div id="blurb"></div>
+      <div id="stats">—</div>
+    </div>
+    <div id="loader" class="glass">Loading…</div>
+    <nav id="presets" class="glass" aria-label="Water presets"></nav>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
