@@ -4,15 +4,15 @@ A three.js scene where a Mixamo-rigged character walks across snow, sand or mud 
 
 ## Run it
 
-**Live (GitHub Pages):** https://antoinefortin.github.io/Aideas/footfall/
+**Live (GitHub Pages):** https://antoinefortin.github.io/Aideas/threejs-environment-experiments/footfall/
 
 **Locally, in one command** (fetches only this folder, then serves it and opens the browser — needs git and Python 3):
 
 ```bash
-git clone --depth 1 --filter=blob:none --sparse https://github.com/antoinefortin/Aideas.git && cd Aideas && git sparse-checkout set footfall && sh footfall/run.sh
+git clone --depth 1 --filter=blob:none --sparse https://github.com/antoinefortin/Aideas.git && cd Aideas && git sparse-checkout set threejs-environment-experiments/footfall && sh threejs-environment-experiments/footfall/run.sh
 ```
 
-**From an existing clone:** `sh footfall/run.sh` (optionally a port: `sh footfall/run.sh 9000`).
+**From an existing clone:** `sh threejs-environment-experiments/footfall/run.sh` (optionally a port: `sh threejs-environment-experiments/footfall/run.sh 9000`).
 
 There's no build step — it's plain HTML + ES modules with three.js from a CDN, so any static server works. It can't be opened as a `file://` page (browsers block ES modules there). Add `?lite` to the URL for a lighter ground mesh.
 

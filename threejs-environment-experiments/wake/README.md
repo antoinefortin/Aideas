@@ -4,15 +4,15 @@ A three.js scene where a Mixamo-rigged character wades through water. A GPU wave
 
 ## Run it
 
-**Live (GitHub Pages):** https://antoinefortin.github.io/Aideas/wake/
+**Live (GitHub Pages):** https://antoinefortin.github.io/Aideas/threejs-environment-experiments/wake/
 
 **Locally, in one command** (fetches only this folder, then serves it and opens the browser — needs git and Python 3):
 
 ```bash
-git clone --depth 1 --filter=blob:none --sparse https://github.com/antoinefortin/Aideas.git && cd Aideas && git sparse-checkout set wake && sh wake/run.sh
+git clone --depth 1 --filter=blob:none --sparse https://github.com/antoinefortin/Aideas.git && cd Aideas && git sparse-checkout set threejs-environment-experiments/wake && sh threejs-environment-experiments/wake/run.sh
 ```
 
-**From an existing clone:** `sh wake/run.sh` (optionally a port: `sh wake/run.sh 9000`).
+**From an existing clone:** `sh threejs-environment-experiments/wake/run.sh` (optionally a port: `sh threejs-environment-experiments/wake/run.sh 9000`).
 
 No build step — plain HTML + ES modules, three.js from a CDN. Add `?lite` for a lighter sim and mesh, or `?preset=Stormy%20Sea` to open on a preset.
 
