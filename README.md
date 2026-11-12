@@ -5,6 +5,7 @@ A place where I just put code of stuff I made with AI
 
 - [Tabtone](tabtone/) — One-click Chrome tab audio recorder with local MP3 encoding and automatic filenames.
 - [Tabflow](tabflow/) — Égaliseur par onglet, volume booster et effets audio locaux pour Chrome.
-- [three.js environment experiments](threejs-environment-experiments/) — interactive three.js scenes where a Mixamo walker leaves a trace in its environment:
+- [three.js environment experiments](threejs-environment-experiments/) — interactive three.js scenes where something leaves a trace in its environment:
   - [Footfall](threejs-environment-experiments/footfall/) — vertex-displaced footprints in snow, sand or mud; scoops, packs and throws snowballs. [▶ Run it](https://antoinefortin.github.io/Aideas/threejs-environment-experiments/footfall/)
   - [Wake](threejs-environment-experiments/wake/) — wading through GPU-simulated water (bow wave, wake, stones, rain) with 12 water presets. [▶ Run it](https://antoinefortin.github.io/Aideas/threejs-environment-experiments/wake/)
+  - [Splinter](threejs-environment-experiments/splinter/) — hyper-real PBR pump shotgun firing at a pine board: see-through pellet holes with end grain and exit tear-out, 3 ammo types. [▶ Run it](https://antoinefortin.github.io/Aideas/threejs-environment-experiments/splinter/)
