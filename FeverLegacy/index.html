@@ -803,8 +803,8 @@ window.addEventListener('resize', () => {
    ═══════════════════════════════════════════════════════════ */
 function animate() {
   requestAnimationFrame(animate);
-  const t = clock.getElapsedTime();
   const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
 
   /* ── keyboard look ────────────────────────────────── */
   const lookSpeed = 1.5 * dt;
