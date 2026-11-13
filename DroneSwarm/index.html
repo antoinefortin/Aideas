@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DroneSwarm — 2D Swarm &amp; Coverage Simulator</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e17;color:#c8d6e5;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+canvas{flex:1;display:block;cursor:crosshair}
+#hud{position:absolute;top:12px;left:12px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+#hud>div{background:rgba(10,14,23,.85);border:1px solid #1e2a3a;border-radius:8px;padding:10px 14px;pointer-events:auto;backdrop-filter:blur(6px);font-size:13px;min-width:210px}
+#hud h3{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:#5f7a9a;margin-bottom:8px}
+.row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.row:last-child{margin-bottom:0}
+.row label{flex:1;font-size:12px;color:#8fa4bd}
+.row span{width:36px;text-align:right;font-size:12px;color:#00d4aa;font-variant-numeric:tabular-nums}
+input[type=range]{width:90px;height:4px;-webkit-appearance:none;background:#1e2a3a;border-radius:2px;outline:none;margin:0 8px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#00d4aa;cursor:pointer}
+#stats{position:absolute;top:12px;right:12px;background:rgba(10,14,23,.85);border:1px solid #1e2a3a;border-radius:8px;padding:10px 14px;backdrop-filter:blur(6px);font-size:12px;min-width:160px}
+#stats .val{color:#00d4aa;font-weight:600;font-variant-numeric:tabular-nums}
+#stats .srow{display:flex;justify-content:space-between;margin-bottom:4px}
+#hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(10,14,23,.7);border:1px solid #1e2a3a;border-radius:6px;padding:6px 14px;font-size:11px;color:#5f7a9a;pointer-events:none}
+.btn{background:#1a2435;border:1px solid #2a3a50;color:#8fa4bd;border-radius:5px;padding:5px 10px;font-size:11px;cursor:pointer;margin-top:4px}
+.btn:hover{background:#243048;color:#c8d6e5}
+.btn.active{background:#00d4aa22;border-color:#00d4aa;color:#00d4aa}
+#mode-row{display:flex;gap:4px;margin-top:6px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div>
+    <h3>Swarm</h3>
+    <div class="row"><label>Drones</label><input type="range" id="sCount" min="5" max="200" value="40"><span id="vCount">40</span></div>
+    <div class="row"><label>Speed</label><input type="range" id="sSpeed" min="10" max="300" value="100"><span id="vSpeed">100</span></div>
+    <div class="row"><label>Radius</label><input type="range" id="sRadius" min="20" max="200" value="70"><span id="vRadius">70</span></div>
+  </div>
+  <div>
+    <h3>Behavior</h3>
+    <div class="row"><label>Cohesion</label><input type="range" id="sCoh" min="0" max="100" value="40"><span id="vCoh">40</span></div>
+    <div class="row"><label>Alignment</label><input type="range" id="sAli" min="0" max="100" value="50"><span id="vAli">50</span></div>
+    <div class="row"><label>Separation</label><input type="range" id="sSep" min="0" max="100" value="60"><span id="vSep">60</span></div>
+    <div class="row"><label>Wander</label><input type="range" id="sWan" min="0" max="100" value="30"><span id="vWan">30</span></div>
+    <div id="mode-row">
+      <button class="btn active" id="btnFlock" onclick="setMode('flock')">Flock</button>
+      <button class="btn" id="btnScatter" onclick="setMode('scatter')">Scatter</button>
+      <button class="btn" id="btnGrid" onclick="setMode('grid')">Grid</button>
+    </div>
+  </div>
+  <div>
+    <h3>Display</h3>
+    <div class="row"><label>Show trails</label><input type="range" id="sTrail" min="0" max="100" value="30"><span id="vTrail">30</span></div>
+    <div class="row"><label>Heatmap</label><input type="range" id="sHeat" min="0" max="100" value="0"><span id="vHeat">0</span></div>
+  </div>
+</div>
+
+<div id="stats">
+  <div class="srow"><span>Drones</span><span class="val" id="stDrones">40</span></div>
+  <div class="srow"><span>Coverage</span><span class="val" id="stCov">0%</span></div>
+  <div class="srow"><span>Overlap</span><span class="val" id="stOver">0%</span></div>
+  <div class="srow"><span>Avg dist</span><span class="val" id="stDist">0</span></div>
+</div>
+
+<div id="hint">Click to attract / Right-click to repel / Scroll to zoom</div>
+
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H,drones=[],mode='flock',attractor=null,repulsor=null,zoom=1,panX=0,panY=0;
+
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+window.addEventListener('resize',resize);resize();
+
+// Slider wiring
+const sliders={};
+['Count','Speed','Radius','Coh','Ali','Sep','Wan','Trail','Heat'].forEach(k=>{
+  const s=document.getElementById('s'+k),v=document.getElementById('v'+k);
+  sliders[k]={el:s,val:()=>+s.value};
+  s.addEventListener('input',()=>{v.textContent=s.value;if(k==='Count')syncDrones()});
+});
+
+function val(k){return sliders[k].val()}
+
+class Drone{
+  constructor(x,y){
+    this.x=x||Math.random()*W;
+    this.y=y||Math.random()*H;
+    this.vx=(Math.random()-.5)*2;
+    this.vy=(Math.random()-.5)*2;
+    this.trail=[];
+    this.wanderAngle=Math.random()*Math.PI*2;
+    this.hue=160+Math.random()*40;
+  }
+}
+
+function syncDrones(){
+  const n=val('Count');
+  while(drones.length<n)drones.push(new Drone());
+  while(drones.length>n)drones.pop();
+  document.getElementById('stDrones').textContent=n;
+}
+syncDrones();
+
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('#mode-row .btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn'+m.charAt(0).toUpperCase()+m.slice(1)).classList.add('active');
+}
+
+// Input
+let mouseDown=false,rightDown=false;
+canvas.addEventListener('mousedown',e=>{
+  if(e.button===0){mouseDown=true;attractor=screen2world(e.clientX,e.clientY)}
+  if(e.button===2){rightDown=true;repulsor=screen2world(e.clientX,e.clientY)}
+});
+canvas.addEventListener('mousemove',e=>{
+  if(mouseDown)attractor=screen2world(e.clientX,e.clientY);
+  if(rightDown)repulsor=screen2world(e.clientX,e.clientY);
+});
+canvas.addEventListener('mouseup',e=>{
+  if(e.button===0){mouseDown=false;attractor=null}
+  if(e.button===2){rightDown=false;repulsor=null}
+});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('wheel',e=>{
+  const d=e.deltaY>0?0.9:1.1;
+  const p=screen2world(e.clientX,e.clientY);
+  zoom*=d;zoom=Math.max(.2,Math.min(5,zoom));
+  panX=e.clientX-p.x*zoom;panY=e.clientY-p.y*zoom;
+},{passive:true});
+
+// Touch support
+canvas.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];mouseDown=true;attractor=screen2world(t.clientX,t.clientY)},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];if(mouseDown)attractor=screen2world(t.clientX,t.clientY)},{passive:false});
+canvas.addEventListener('touchend',()=>{mouseDown=false;attractor=null});
+
+function screen2world(sx,sy){return{x:(sx-panX)/zoom,y:(sy-panY)/zoom}}
+
+// Coverage calculation (sampled)
+let covPct=0,overPct=0;
+function calcCoverage(){
+  const r=val('Radius'),samples=2000;
+  let covered=0,overlap=0;
+  for(let i=0;i<samples;i++){
+    const sx=Math.random()*W/zoom,sy=Math.random()*H/zoom;
+    let hits=0;
+    for(const d of drones){
+      const dx=d.x-sx,dy=d.y-sy;
+      if(dx*dx+dy*dy<r*r){hits++;if(hits>=2)break}
+    }
+    if(hits>=1)covered++;
+    if(hits>=2)overlap++;
+  }
+  covPct=(covered/samples*100);
+  overPct=(overlap/samples*100);
+}
+
+// Heatmap offscreen
+const heatCanvas=document.createElement('canvas'),heatCtx=heatCanvas.getContext('2d');
+
+function drawHeatmap(){
+  const heatAlpha=val('Heat')/100;
+  if(heatAlpha<0.01)return;
+  const scale=4;
+  const hw=Math.ceil(W/scale),hh=Math.ceil(H/scale);
+  if(heatCanvas.width!==hw||heatCanvas.height!==hh){heatCanvas.width=hw;heatCanvas.height=hh}
+  const img=heatCtx.createImageData(hw,hh);
+  const r=val('Radius');
+  for(let py=0;py<hh;py++){
+    for(let px=0;px<hw;px++){
+      const wx=(px*scale-panX)/zoom,wy=(py*scale-panY)/zoom;
+      let count=0;
+      for(const d of drones){
+        const dx=d.x-wx,dy=d.y-wy;
+        const dist2=dx*dx+dy*dy;
+        if(dist2<r*r)count+=1-Math.sqrt(dist2)/r;
+      }
+      const idx=(py*hw+px)*4;
+      if(count>0){
+        const t=Math.min(count/3,1);
+        // blue -> cyan -> green -> yellow -> red
+        let cr,cg,cb;
+        if(t<.25){const s=t/.25;cr=0;cg=s*180;cb=200+s*55}
+        else if(t<.5){const s=(t-.25)/.25;cr=0;cg=180+s*75;cb=255-s*255}
+        else if(t<.75){const s=(t-.5)/.25;cr=s*255;cg=255;cb=0}
+        else{const s=(t-.75)/.25;cr=255;cg=255-s*200;cb=0}
+        img.data[idx]=cr;img.data[idx+1]=cg;img.data[idx+2]=cb;img.data[idx+3]=heatAlpha*200;
+      }
+    }
+  }
+  heatCtx.putImageData(img,0,0);
+  ctx.drawImage(heatCanvas,0,0,W,H);
+}
+
+// Grid target positions
+function gridTarget(i,n){
+  const r=val('Radius');
+  const cols=Math.ceil(Math.sqrt(n*W/H/zoom));
+  const rows=Math.ceil(n/cols);
+  const gx=r*1.6,gy=r*1.6;
+  const ox=(W/zoom-cols*gx)/2+gx/2;
+  const oy=(H/zoom-rows*gy)/2+gy/2;
+  const col=i%cols,row=Math.floor(i/cols);
+  return{x:ox+col*gx,y:oy+row*gy};
+}
+
+function update(dt){
+  const speed=val('Speed');
+  const maxSpeed=speed;
+  const r=val('Radius');
+  const coh=val('Coh')/100;
+  const ali=val('Ali')/100;
+  const sep=val('Sep')/100;
+  const wan=val('Wan')/100;
+  const neighborDist=r*2;
+  const sepDist=r*.6;
+
+  for(let i=0;i<drones.length;i++){
+    const d=drones[i];
+    let ax=0,ay=0;
+
+    if(mode==='flock'||mode==='scatter'){
+      // Boids
+      let cx=0,cy=0,cn=0;
+      let alx=0,aly=0,an=0;
+      let sx=0,sy=0;
+
+      for(let j=0;j<drones.length;j++){
+        if(i===j)continue;
+        const o=drones[j];
+        const dx=o.x-d.x,dy=o.y-d.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<neighborDist){
+          cx+=o.x;cy+=o.y;cn++;
+          alx+=o.vx;aly+=o.vy;an++;
+          if(dist<sepDist&&dist>0){
+            sx-=dx/dist*(sepDist-dist)/sepDist;
+            sy-=dy/dist*(sepDist-dist)/sepDist;
+          }
+        }
+      }
+
+      if(cn>0){
+        if(mode==='flock'){
+          ax+=(cx/cn-d.x)*coh*.02;
+          ay+=(cy/cn-d.y)*coh*.02;
+        }else{
+          ax-=(cx/cn-d.x)*coh*.03;
+          ay-=(cy/cn-d.y)*coh*.03;
+        }
+      }
+      if(an>0){
+        ax+=(alx/an-d.vx)*ali*.05;
+        ay+=(aly/an-d.vy)*ali*.05;
+      }
+      ax+=sx*sep*2;
+      ay+=sy*sep*2;
+
+    }else if(mode==='grid'){
+      const t=gridTarget(i,drones.length);
+      ax+=(t.x-d.x)*.03;
+      ay+=(t.y-d.y)*.03;
+      ax-=d.vx*.1;
+      ay-=d.vy*.1;
+    }
+
+    // Wander
+    d.wanderAngle+=((Math.random()-.5)*3)*dt;
+    ax+=Math.cos(d.wanderAngle)*wan*.5;
+    ay+=Math.sin(d.wanderAngle)*wan*.5;
+
+    // Attractor / Repulsor
+    if(attractor){
+      const dx=attractor.x-d.x,dy=attractor.y-d.y;
+      const dist=Math.sqrt(dx*dx+dy*dy)+1;
+      ax+=dx/dist*3;ay+=dy/dist*3;
+    }
+    if(repulsor){
+      const dx=d.x-repulsor.x,dy=d.y-repulsor.y;
+      const dist=Math.sqrt(dx*dx+dy*dy)+1;
+      const force=Math.min(300/dist,5);
+      ax+=dx/dist*force;ay+=dy/dist*force;
+    }
+
+    // Boundary steering
+    const margin=50/zoom,bw=W/zoom,bh=H/zoom;
+    if(d.x<margin)ax+=(margin-d.x)*.05;
+    if(d.x>bw-margin)ax+=(bw-margin-d.x)*.05;
+    if(d.y<margin)ay+=(margin-d.y)*.05;
+    if(d.y>bh-margin)ay+=(bh-margin-d.y)*.05;
+
+    d.vx+=ax*dt*60;d.vy+=ay*dt*60;
+    const spd=Math.sqrt(d.vx*d.vx+d.vy*d.vy);
+    if(spd>maxSpeed){d.vx=d.vx/spd*maxSpeed;d.vy=d.vy/spd*maxSpeed}
+
+    d.x+=d.vx*dt;d.y+=d.vy*dt;
+
+    // Trail
+    const trailLen=Math.floor(val('Trail')/2);
+    d.trail.push({x:d.x,y:d.y});
+    while(d.trail.length>trailLen)d.trail.shift();
+  }
+}
+
+function draw(){
+  const r=val('Radius');
+  const trailAlpha=val('Trail')/200;
+
+  // Background with fade for trails
+  ctx.fillStyle='#0a0e17';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.save();
+  ctx.translate(panX,panY);
+  ctx.scale(zoom,zoom);
+
+  // Heatmap
+  if(val('Heat')>0){
+    ctx.save();ctx.setTransform(1,0,0,1,0,0);
+    drawHeatmap();
+    ctx.restore();
+  }
+
+  // Coverage radii
+  for(const d of drones){
+    const grad=ctx.createRadialGradient(d.x,d.y,0,d.x,d.y,r);
+    grad.addColorStop(0,`hsla(${d.hue},80%,60%,.08)`);
+    grad.addColorStop(.7,`hsla(${d.hue},80%,50%,.05)`);
+    grad.addColorStop(1,`hsla(${d.hue},80%,40%,0)`);
+    ctx.fillStyle=grad;
+    ctx.beginPath();ctx.arc(d.x,d.y,r,0,Math.PI*2);ctx.fill();
+
+    // Radius border
+    ctx.strokeStyle=`hsla(${d.hue},70%,55%,.15)`;
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(d.x,d.y,r,0,Math.PI*2);ctx.stroke();
+  }
+
+  // Trails
+  if(trailAlpha>0.01){
+    for(const d of drones){
+      if(d.trail.length<2)continue;
+      ctx.beginPath();
+      ctx.moveTo(d.trail[0].x,d.trail[0].y);
+      for(let i=1;i<d.trail.length;i++){
+        ctx.lineTo(d.trail[i].x,d.trail[i].y);
+      }
+      ctx.strokeStyle=`hsla(${d.hue},70%,60%,${trailAlpha})`;
+      ctx.lineWidth=1.5;
+      ctx.stroke();
+    }
+  }
+
+  // Connections between nearby drones
+  for(let i=0;i<drones.length;i++){
+    for(let j=i+1;j<drones.length;j++){
+      const a=drones[i],b=drones[j];
+      const dx=a.x-b.x,dy=a.y-b.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<r*1.5){
+        const alpha=.12*(1-dist/(r*1.5));
+        ctx.strokeStyle=`rgba(0,212,170,${alpha})`;
+        ctx.lineWidth=.8;
+        ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+      }
+    }
+  }
+
+  // Drone bodies
+  for(const d of drones){
+    const angle=Math.atan2(d.vy,d.vx);
+    ctx.save();
+    ctx.translate(d.x,d.y);
+    ctx.rotate(angle);
+
+    // Body
+    ctx.fillStyle=`hsl(${d.hue},80%,60%)`;
+    ctx.beginPath();
+    ctx.moveTo(8,0);ctx.lineTo(-5,-4);ctx.lineTo(-3,0);ctx.lineTo(-5,4);ctx.closePath();
+    ctx.fill();
+
+    // Glow
+    ctx.shadowColor=`hsl(${d.hue},80%,60%)`;
+    ctx.shadowBlur=8;
+    ctx.fillStyle=`hsl(${d.hue},90%,75%)`;
+    ctx.beginPath();ctx.arc(2,0,2,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;
+
+    ctx.restore();
+  }
+
+  // Attractor indicator
+  if(attractor){
+    ctx.strokeStyle='rgba(0,212,170,.5)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(attractor.x,attractor.y,20,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(attractor.x,attractor.y,8,0,Math.PI*2);ctx.stroke();
+  }
+  if(repulsor){
+    ctx.strokeStyle='rgba(255,80,80,.5)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(repulsor.x,repulsor.y,20,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(repulsor.x-8,repulsor.y-8);ctx.lineTo(repulsor.x+8,repulsor.y+8);
+    ctx.moveTo(repulsor.x+8,repulsor.y-8);ctx.lineTo(repulsor.x-8,repulsor.y+8);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// Stats
+let statsTimer=0;
+function updateStats(dt){
+  statsTimer+=dt;
+  if(statsTimer>.5){
+    statsTimer=0;
+    calcCoverage();
+    document.getElementById('stCov').textContent=covPct.toFixed(1)+'%';
+    document.getElementById('stOver').textContent=overPct.toFixed(1)+'%';
+    // Average distance between neighbors
+    let totalDist=0,pairs=0;
+    for(let i=0;i<drones.length;i++){
+      let minD=Infinity;
+      for(let j=0;j<drones.length;j++){
+        if(i===j)continue;
+        const dx=drones[i].x-drones[j].x,dy=drones[i].y-drones[j].y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<minD)minD=dist;
+      }
+      if(minD<Infinity){totalDist+=minD;pairs++}
+    }
+    document.getElementById('stDist').textContent=pairs?Math.round(totalDist/pairs)+'px':'--';
+  }
+}
+
+let last=0;
+function loop(t){
+  const dt=Math.min((t-last)/1000,.05);last=t;
+  update(dt);
+  draw();
+  updateStats(dt);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(t=>{last=t;loop(t)});
+</script>
+</body>
+</html>
