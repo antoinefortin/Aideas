@@ -109,19 +109,17 @@ canvas{display:block;image-rendering:pixelated}
       enterMsg.style.color = '#c9a84c';
       enterMsg.style.cursor = 'pointer';
       document.getElementById('loader').style.cursor = 'pointer';
-      console.log('[FeverLegacy] Load complete, waiting for click');
+      /* load complete */
     }
   }, 100);
 
   function tryEnter() {
-    console.log('[FeverLegacy] tryEnter called, loadDone=', loadDone, 'window._feverStarted=', window._feverStarted);
     if (!loadDone || window._feverStarted) return;
     window._feverStarted = true;
     document.removeEventListener('click', tryEnter, true);
     document.removeEventListener('pointerdown', tryEnter, true);
     document.removeEventListener('touchstart', tryEnter, true);
     document.getElementById('loader').classList.add('done');
-    console.log('[FeverLegacy] Starting experience');
     if (typeof window._startExperience === 'function') {
       window._startExperience();
     }
@@ -130,7 +128,7 @@ canvas{display:block;image-rendering:pixelated}
   document.addEventListener('click', tryEnter, true);
   document.addEventListener('pointerdown', tryEnter, true);
   document.addEventListener('touchstart', tryEnter, true);
-  console.log('[FeverLegacy] Loader script initialized');
+  /* loader ready */
 })();
 </script>
 <script>
@@ -238,23 +236,23 @@ const ARTICLES = {
     title: 'THE ONLY DIFFERENCE BETWEEN MARTYRDOM AND SUICIDE IS PRESS COVERAGE',
     body: `<h4>The Lead Single</h4>
 <p>Dance-punk energy with synth stabs. The song that announced: <i>this is not your typical emo band</i>.</p>
-<div class="video-embed"><iframe src="https://www.youtube.com/embed/cCnMhpVHMvQ?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>
+<div class="video-embed"><iframe src="https://www.youtube.com/embed/kzntBrpWcPU?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>
 <p>Released as the lead single, it set the tone for an album that would defy every expectation the scene had for a band signed by Pete Wentz.</p>`,
-    video: 'cCnMhpVHMvQ'
+    video: 'kzntBrpWcPU'
   },
   lying: {
     title: 'LYING IS THE MOST FUN A GIRL CAN HAVE WITHOUT TAKING HER CLOTHES OFF',
     body: `<h4>Side A's Crown Jewel</h4>
 <p>A sultry, bass-driven track that closes the electronic half. The title alone was a statement of intent: these kids weren't afraid to be provocative, literary, and absurdly verbose simultaneously.</p>
-<div class="video-embed"><iframe src="https://www.youtube.com/embed/ohzAPqwGFQM?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`,
-    video: 'ohzAPqwGFQM'
+<div class="video-embed"><iframe src="https://www.youtube.com/embed/x20zq7oTv54?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`,
+    video: 'x20zq7oTv54'
   },
   buildgod: {
     title: 'BUILD GOD, THEN WE\'LL TALK',
     body: `<h4>The Closing Curtain</h4>
 <p>A narrative told over music-box piano and sweeping strings. It's the album's most ambitious and theatrical moment, ending the record like a final curtain call.</p>
-<div class="video-embed"><iframe src="https://www.youtube.com/embed/VtDBSxDE0Wg?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`,
-    video: 'VtDBSxDE0Wg'
+<div class="video-embed"><iframe src="https://www.youtube.com/embed/TFSIm3Zeecg?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`,
+    video: 'TFSIm3Zeecg'
   },
   betterifyoudo: {
     title: 'BUT IT\'S BETTER IF YOU DO',
@@ -262,16 +260,64 @@ const ARTICLES = {
 <p>Opens Side B with swinging piano and cabaret energy — the full vaudeville turn. This is where the album becomes something nobody expected from an emo band in 2005.</p>
 <div class="video-embed"><iframe src="https://www.youtube.com/embed/uBtH2YlNiNc?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`,
     video: 'uBtH2YlNiNc'
+  },
+  camisado: {
+    title: 'CAMISADO',
+    body: `<h4>The Straitjacket Song</h4>
+<p>Named after a <b>camisole de force</b> (straitjacket), this track is one of the album's most emotionally raw moments. Written about someone close to the band who was hospitalized, the song wraps genuine pain in theatrical post-punk energy.</p>
+<p>The opening riff hits like a declaration of war. Ryan Ross's lyrics shift between clinical imagery and desperate emotion: <i>"Can't take the kid from the fight / take the fight from the kid."</i></p>
+<div class="video-embed"><iframe src="https://www.youtube.com/embed/csNwIk3DL28?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>
+<p>Live, Camisado became one of the band's most electrifying performances — proof that beneath the vaudeville costumes, there was real urgency.</p>`,
+    video: 'csNwIk3DL28'
+  },
+  timetodance: {
+    title: 'TIME TO DANCE',
+    body: `<h4>Chuck Palahniuk on the Dance Floor</h4>
+<p>Based on Chuck Palahniuk's novel <i>Invisible Monsters</i>, this track tells the story of a fashion model who destroys her own face with a shotgun. Ross translated Palahniuk's transgressive fiction into a <b>dance-punk anthem</b> — and somehow made it catchy.</p>
+<p>The literary ambition was audacious: an emo band writing songs about postmodern novels. It signaled that Panic! weren't just wearing costumes — they'd actually read the books.</p>
+<div class="video-embed"><iframe src="https://www.youtube.com/embed/JfUug-R7M5g?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>
+<div class="tag">PALAHNIUK</div><div class="tag">DANCE-PUNK</div><div class="tag">LITERARY EMO</div>`,
+    video: 'JfUug-R7M5g'
+  },
+  myspace: {
+    title: 'THE MYSPACE ERA — HOW THEY BROKE',
+    body: `<h4>Before Spotify, There Was MySpace</h4>
+<p>In 2005, there was no Spotify, no TikTok, no algorithm. Music discovery happened on <b>MySpace</b> — and Panic! At The Disco were the platform's biggest success story.</p>
+<p>Their MySpace page accumulated <b>millions of plays</b> before the album even dropped. Fans embedded the player on their own profiles. The band's Top 8 friends list became music industry gossip. Pete Wentz's endorsement on his LiveJournal was the equivalent of a modern influencer co-sign.</p>
+<div class="quote">"MySpace was the great equalizer. A kid in Las Vegas could reach the entire world without a label, without radio, without MTV. Panic! proved that."<cite>— music journalist, 2006</cite></div>
+<p>The band's rise presaged the democratization of music: <b>the internet could make you famous before you'd played a single show</b>. It was a blueprint that every band on Fueled by Ramen would try to follow.</p>
+<div class="stat-row"><div class="stat-box"><span class="num">9M+</span><span class="lbl">MYSPACE PLAYS</span></div><div class="stat-box"><span class="num">#1</span><span class="lbl">MYSPACE MUSIC</span></div><div class="stat-box"><span class="num">0</span><span class="lbl">RADIO PLAY BEFORE SIGNING</span></div></div>`,
+    video: null
+  },
+  intermission: {
+    title: 'THE INTERMISSION — SIDE A MEETS SIDE B',
+    body: `<h4>The Pivot Point</h4>
+<p>Track 8 is literally titled <b>"Intermission"</b> — a 37-second interlude that begins with skittering electronic beats before dissolving into a lone piano. It's the hinge of the entire album.</p>
+<p>Before it: synths, drum machines, dance-punk, angular post-punk. After it: accordion, cello, trumpet, organ, cabaret piano. The album literally changes genre at its midpoint.</p>
+<p>This structural decision was unprecedented in emo. While most albums aimed for sonic consistency, Ross and Urie designed theirs as a <b>two-act play</b> — with an actual intermission, like you'd find in a theatre.</p>
+<div class="quote">"The Intermission isn't just a track divider. It's a statement: this album is a performance, and you're in the audience."</div>
+<p>The split structure meant that listeners who loved Side A's electronics might bounce off Side B's vaudeville — and vice versa. It was a deliberate creative risk that made the album feel like <b>two records in one</b>.</p>`,
+    video: null
+  },
+  london: {
+    title: 'LONDON BECKONED SONGS ABOUT MONEY WRITTEN BY MACHINES',
+    body: `<h4>The 15-Word Title</h4>
+<p>In an era when song titles were getting shorter, Ross gave us this: <b>thirteen words of baroque pretension</b> that doubled as a thesis statement. The title alone was an act of rebellion against the three-chord simplicity of pop-punk.</p>
+<p>Musically, it's pure Side A energy: angular guitars, synth stabs, and Urie's voice cutting through the electronic haze. The song critiques commercialism while being, itself, commercially irresistible.</p>
+<div class="video-embed"><iframe src="https://www.youtube.com/embed/Bc3sml-EOs4?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>
+<div class="tag">SIDE A</div><div class="tag">SYNTH-PUNK</div><div class="tag">ANTI-COMMERCIAL</div>`,
+    video: 'Bc3sml-EOs4'
   }
 };
 
 /* audio zones: position in world, youtube video id, title */
 const AUDIO_ZONES = [
   { pos: new THREE.Vector3(0, 2, -8), id: 'vc6vs-l5dkc', title: 'I Write Sins Not Tragedies', radius: 18 },
-  { pos: new THREE.Vector3(-8, 2, 4), id: 'cCnMhpVHMvQ', title: 'The Only Difference...', radius: 10 },
-  { pos: new THREE.Vector3(8, 2, 4), id: 'ohzAPqwGFQM', title: 'Lying Is the Most Fun...', radius: 10 },
+  { pos: new THREE.Vector3(-8, 2, 6), id: 'csNwIk3DL28', title: 'Camisado', radius: 10 },
+  { pos: new THREE.Vector3(8, 2, 6), id: 'Bc3sml-EOs4', title: 'London Beckoned...', radius: 10 },
   { pos: new THREE.Vector3(-8, 2, -4), id: 'uBtH2YlNiNc', title: 'But It\'s Better If You Do', radius: 10 },
-  { pos: new THREE.Vector3(8, 2, -4), id: 'VtDBSxDE0Wg', title: 'Build God, Then We\'ll Talk', radius: 10 },
+  { pos: new THREE.Vector3(8, 2, -4), id: 'JfUug-R7M5g', title: 'Time to Dance', radius: 10 },
+  { pos: new THREE.Vector3(0, 2, 16), id: 'TFSIm3Zeecg', title: 'Build God, Then We\'ll Talk', radius: 12 },
 ];
 
 /* ═══════════════════════════════════════════════════════════
@@ -617,25 +663,30 @@ function init() {
     return group;
   }
 
-  /* LEFT WALL articles */
-  makeFrame(-11.8, 4, 6, PI / 2, 2.5, 3, 0x1a1008, 'origin', 'THE GENESIS — CLICK TO READ');
-  makeFrame(-11.8, 4, 1, PI / 2, 2.5, 3, 0x180a0a, 'audacity', 'THE AUDACITY — CLICK TO READ');
-  makeFrame(-11.8, 4, -4, PI / 2, 2.5, 3, 0x0a0a18, 'martyrdom', 'THE ONLY DIFFERENCE... — CLICK TO READ');
+  /* ── LEFT WALL articles ───────────────────────────── */
+  makeFrame(-11.8, 4, 8, PI / 2, 2.5, 3, 0x1a1008, 'origin', 'THE GENESIS — CLICK TO READ');
+  makeFrame(-11.8, 4, 3, PI / 2, 2.5, 3, 0x180a0a, 'audacity', 'THE AUDACITY — CLICK TO READ');
+  makeFrame(-11.8, 4, -2, PI / 2, 2.5, 3, 0x0a0a18, 'camisado', '♪ CAMISADO — CLICK TO READ');
+  makeFrame(-11.8, 7, 5.5, PI / 2, 2, 2, 0x14080a, 'myspace', 'THE MYSPACE ERA — CLICK TO READ');
 
-  /* RIGHT WALL articles */
-  makeFrame(11.8, 4, 6, -PI / 2, 2.5, 3, 0x18100a, 'album', 'THE RECORD — CLICK TO READ');
-  makeFrame(11.8, 4, 1, -PI / 2, 2.5, 3, 0x100a18, 'pitchfork', 'PITCHFORK 1.5/10 — CLICK TO READ');
-  makeFrame(11.8, 4, -4, -PI / 2, 2.5, 3, 0x0a1808, 'lying', 'LYING IS THE MOST FUN... — CLICK TO READ');
+  /* ── RIGHT WALL articles ──────────────────────────── */
+  makeFrame(11.8, 4, 8, -PI / 2, 2.5, 3, 0x18100a, 'album', 'THE RECORD — CLICK TO READ');
+  makeFrame(11.8, 4, 3, -PI / 2, 2.5, 3, 0x100a18, 'pitchfork', 'PITCHFORK 1.5/10 — CLICK TO READ');
+  makeFrame(11.8, 4, -2, -PI / 2, 2.5, 3, 0x0a1808, 'timetodance', '♪ TIME TO DANCE — CLICK TO READ');
+  makeFrame(11.8, 7, 5.5, -PI / 2, 2, 2, 0x0a0a14, 'intermission', 'THE INTERMISSION — CLICK TO READ');
 
-  /* STAGE WALL (back) articles */
-  makeFrame(-4, 5, -9.8, 0, 3, 3.5, 0x1a0808, 'sins', '♪ I WRITE SINS — CLICK TO READ');
-  makeFrame(4, 5, -9.8, 0, 3, 3.5, 0x0a0a14, 'legacy', 'THE LEGACY — CLICK TO READ');
-
-  /* STAGE center piece */
+  /* ── STAGE WALL (back) — the main attraction ──── */
+  makeFrame(-5, 5, -9.8, 0, 3, 3.5, 0x1a0808, 'sins', '♪ I WRITE SINS NOT TRAGEDIES — CLICK');
+  makeFrame(5, 5, -9.8, 0, 3, 3.5, 0x0a0a14, 'legacy', 'THE LEGACY — CLICK TO READ');
   makeFrame(0, 4, -9.8, 0, 4, 4.5, 0x200808, 'betterifyoudo', '♪ BUT IT\'S BETTER IF YOU DO — CLICK');
 
-  /* REAR WALL */
-  makeFrame(0, 5, 19.8, PI, 5, 3, 0x14080a, 'buildgod', '♪ BUILD GOD, THEN WE\'LL TALK — CLICK');
+  /* ── REAR WALL (behind player) ─────────────────── */
+  makeFrame(-4, 5, 19.8, PI, 3, 3, 0x14080a, 'buildgod', '♪ BUILD GOD, THEN WE\'LL TALK — CLICK');
+  makeFrame(4, 5, 19.8, PI, 3, 3, 0x0a1808, 'london', '♪ LONDON BECKONED... — CLICK TO READ');
+
+  /* ── FRONT COLUMNS — easy to spot articles ─────── */
+  makeFrame(-6, 3.5, 0, PI / 4, 2, 2.5, 0x180808, 'martyrdom', '♪ THE ONLY DIFFERENCE... — CLICK');
+  makeFrame(6, 3.5, 0, -PI / 4, 2, 2.5, 0x08180a, 'lying', '♪ LYING IS THE MOST FUN... — CLICK');
 
   /* ── FLOATING MASKS ─────────────────────────────────── */
   window._masks = [];
@@ -695,14 +746,12 @@ function onPointerMove(e) {
 }
 
 function onPointerDown(e) {
-  console.log('[FeverLegacy] pointerDown: started=', started, 'articleOpen=', articleOpen, 'button=', e.button);
   if (!started) return;
   if (articleOpen) return;
   if (e.button !== 0) return;
 
   raycaster.setFromCamera(mouse, camera);
   const hits = raycaster.intersectObjects(interactables, false);
-  console.log('[FeverLegacy] raycaster hits:', hits.length, hits.map(h => h.object.name || h.object.userData));
   if (hits.length === 0) return;
 
   const hit = hits[0];
@@ -717,9 +766,7 @@ function onPointerDown(e) {
       THREE.MathUtils.clamp(pt.z, -8, 18)
     );
     moving = true;
-    console.log('[FeverLegacy] MOVING to', targetPos.x.toFixed(2), targetPos.z.toFixed(2));
   } else if (ud.type === 'article') {
-    console.log('[FeverLegacy] OPEN article', ud.key);
     openArticle(ud.key);
   }
 }
