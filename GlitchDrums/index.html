@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Glitch drum machine: upload samples, stutter, slice, reverse, pitch-shift, bitcrush. Aphex Twin-style IDM beats in your browser.">
+<title>GlitchDrums — IDM drum machine</title>
+<style>
+:root{color-scheme:dark;--bg:#08090f;--card:#11131d;--text:#e8eaf4;--muted:#6a7290;--accent:#ff6b4a;--accent2:#ff9140;--line:#1e2236;--green:#4aeaaa;--hi:#ff6b4a20;--step-on:#ff6b4a;--step-off:#181c2e;--step-hover:#252940}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--text);font:13px/1.5 'SF Mono',Menlo,Consolas,monospace;min-height:100vh;overflow-x:hidden}
+main{max-width:1200px;margin:auto;padding:20px 16px 60px}
+
+/* nav */
+nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.brand{font-weight:800;font-size:18px;letter-spacing:-0.5px;font-family:system-ui}.brand span{color:var(--accent)}
+.badge{border:1px solid #3a2520;color:var(--accent);padding:3px 10px;border-radius:20px;font-size:10px}
+
+/* transport */
+.transport{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px;padding:14px 16px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.transport button{border:0;border-radius:6px;padding:8px 16px;background:var(--accent);color:#fff;font:700 12px monospace;cursor:pointer}
+.transport button:hover{filter:brightness(1.15)}
+.transport button.active{background:#3a8;color:#fff}
+.transport .secondary{background:#252940;color:var(--text)}
+.transport label{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.transport input[type=number]{width:52px;background:#0e1020;border:1px solid var(--line);border-radius:5px;color:var(--text);padding:5px 6px;font:12px monospace;text-align:center}
+.transport select{background:#0e1020;border:1px solid var(--line);border-radius:5px;color:var(--text);padding:5px 6px;font:12px monospace}
+
+/* sample drop */
+.drop-zone{border:1px dashed #3a3050;border-radius:12px;padding:18px;text-align:center;background:#ff6b4a06;cursor:pointer;position:relative;margin-bottom:20px}
+.drop-zone:hover,.drop-zone.over{background:#ff6b4a10;border-color:var(--accent)}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-zone strong{display:block;font-size:14px;color:var(--text);font-family:system-ui}
+.small{font-size:10px;color:var(--muted)}
+
+/* tracks */
+.tracks{display:flex;flex-direction:column;gap:2px}
+.track{display:flex;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;min-height:48px}
+.track-info{width:180px;min-width:180px;padding:8px 10px;display:flex;flex-direction:column;justify-content:center;gap:2px;border-right:1px solid var(--line);position:relative}
+.track-info .name{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.track-info .meta{font-size:9px;color:var(--muted)}
+.track-info canvas{display:block;height:20px;width:100%;border-radius:3px;margin-top:2px}
+.track-controls{display:flex;gap:4px;align-items:center;margin-top:2px}
+.track-controls button{border:0;background:#1e2236;color:var(--muted);font:9px monospace;padding:2px 5px;border-radius:3px;cursor:pointer}
+.track-controls button:hover{color:var(--text);background:#2a3050}
+.track-controls button.on{color:var(--accent);background:#2a1a18}
+.track-remove{position:absolute;top:4px;right:4px;background:none;border:0;color:#445;font-size:12px;cursor:pointer;padding:0 3px}
+.track-remove:hover{color:var(--accent)}
+.track-knobs{display:flex;gap:6px;align-items:center;padding:0 8px;border-right:1px solid var(--line)}
+.knob{display:flex;flex-direction:column;align-items:center;gap:0}
+.knob label{font-size:8px;color:var(--muted);text-transform:uppercase}
+.knob input[type=range]{width:50px;height:14px;accent-color:var(--accent)}
+.knob select{font-size:9px;background:#0e1020;border:1px solid var(--line);border-radius:3px;color:var(--text);padding:1px 3px;width:54px}
+
+/* step grid */
+.steps{display:flex;flex:1;align-items:stretch;padding:4px 6px;gap:2px;overflow-x:auto}
+.step{width:28px;min-width:28px;height:40px;border-radius:4px;background:var(--step-off);border:1px solid transparent;cursor:pointer;position:relative;display:flex;align-items:flex-end;justify-content:center;transition:background .05s}
+.step:hover{background:var(--step-hover)}
+.step.on{background:var(--step-on);border-color:#ff8a6a}
+.step.on.stutter{background:linear-gradient(135deg,var(--step-on),#ff9140)}
+.step.on.reverse{background:linear-gradient(135deg,#4aeaaa,#2a8a6a)}
+.step.on.prob{opacity:.65}
+.step.current{box-shadow:inset 0 0 0 2px #fff}
+.step .vel-bar{width:4px;background:#fff3;border-radius:2px;margin-bottom:2px}
+.step.on .vel-bar{background:#fff8}
+.step-num{position:absolute;top:1px;left:0;right:0;text-align:center;font-size:7px;color:#fff3}
+.beat-marker{border-left:1px solid #2a3050;margin-left:2px;padding-left:2px}
+
+/* step editor */
+.step-editor{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:12px;display:none}
+.step-editor.open{display:block}
+.step-editor h3{font-size:11px;color:var(--accent);margin-bottom:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.se-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.se-field{display:flex;flex-direction:column;gap:3px}
+.se-field label{font-size:9px;color:var(--muted);text-transform:uppercase}
+.se-field input[type=range]{width:100%;accent-color:var(--accent)}
+.se-field select,.se-field input[type=number]{background:#0e1020;border:1px solid var(--line);border-radius:5px;color:var(--text);padding:4px 6px;font:11px monospace}
+.se-field output{font-size:11px;color:var(--text);font-weight:700}
+
+/* global fx */
+.fx-section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
+.fx-section h3{font-size:11px;color:var(--accent);margin-bottom:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.fx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.fx-field{display:flex;flex-direction:column;gap:3px}
+.fx-field label{font-size:9px;color:var(--muted);text-transform:uppercase}
+.fx-field input[type=range]{width:100%;accent-color:var(--accent)}
+.fx-field output{font-size:11px;color:var(--text);font-weight:700}
+
+footer{color:var(--muted);font-size:10px;text-align:center;margin-top:28px}
+@media(max-width:700px){.track-info{width:120px;min-width:120px}.step{width:22px;min-width:22px;height:34px}.track-knobs{display:none}}
+</style>
+</head>
+<body><main>
+<nav><div class="brand">/// Glitch<span>Drums</span></div><span class="badge">browser IDM machine</span></nav>
+
+<div class="transport">
+<button id="playBtn">PLAY</button>
+<button id="stopBtn" class="secondary">STOP</button>
+<label>BPM <input id="bpm" type="number" min="30" max="999" value="140"></label>
+<label>STEPS <select id="numSteps"><option>8</option><option>16</option><option selected>32</option><option>64</option></select></label>
+<label>SWING <input id="swing" type="number" min="0" max="80" value="0" style="width:42px">%</label>
+<button id="exportBtn" class="secondary">EXPORT WAV</button>
+<button id="randomBtn" class="secondary">RANDOM FILL</button>
+<button id="clearAllBtn" class="secondary">CLEAR</button>
+</div>
+
+<label class="drop-zone" id="dropZone">
+<input id="fileInput" type="file" accept="audio/*" multiple>
+<strong>+ Drop samples here</strong>
+<span class="small">WAV, MP3, OGG, FLAC — click to browse — multiple files OK</span>
+</label>
+
+<div class="tracks" id="tracks"></div>
+
+<div class="step-editor" id="stepEditor">
+<h3 id="seTitle">Step Editor</h3>
+<div class="se-grid">
+<div class="se-field"><label>Velocity</label><input type="range" id="seVel" min="0" max="127" value="100"><output id="seVelOut">100</output></div>
+<div class="se-field"><label>Stutter (retrigger)</label><select id="seStutter"><option value="1">1x (off)</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="6">6x</option><option value="8">8x</option><option value="16">16x</option><option value="32">32x</option></select></div>
+<div class="se-field"><label>Pitch (semitones)</label><input type="range" id="sePitch" min="-24" max="24" value="0"><output id="sePitchOut">0</output></div>
+<div class="se-field"><label>Sample start</label><input type="range" id="seStart" min="0" max="100" value="0"><output id="seStartOut">0%</output></div>
+<div class="se-field"><label>Sample end</label><input type="range" id="seEnd" min="0" max="100" value="100"><output id="seEndOut">100%</output></div>
+<div class="se-field"><label>Reverse</label><select id="seReverse"><option value="0">Normal</option><option value="1">Reverse</option></select></div>
+<div class="se-field"><label>Probability</label><input type="range" id="seProbability" min="0" max="100" value="100"><output id="seProbOut">100%</output></div>
+<div class="se-field"><label>Decay</label><input type="range" id="seDecay" min="1" max="100" value="100"><output id="seDecayOut">100%</output></div>
+<div class="se-field"><label>Pan</label><input type="range" id="sePan" min="-100" max="100" value="0"><output id="sePanOut">C</output></div>
+<div class="se-field"><label>Filter cutoff</label><input type="range" id="seFilter" min="100" max="20000" value="20000"><output id="seFilterOut">20k</output></div>
+</div>
+</div>
+
+<div class="fx-section">
+<h3>Master FX</h3>
+<div class="fx-grid">
+<div class="fx-field"><label>Bitcrush depth</label><input type="range" id="fxBits" min="1" max="16" value="16"><output id="fxBitsOut">16 bit (off)</output></div>
+<div class="fx-field"><label>Bitcrush rate</label><input type="range" id="fxCrushRate" min="500" max="44100" value="44100"><output id="fxCrushRateOut">44100 Hz</output></div>
+<div class="fx-field"><label>Distortion</label><input type="range" id="fxDist" min="0" max="100" value="0"><output id="fxDistOut">0%</output></div>
+<div class="fx-field"><label>Delay time</label><input type="range" id="fxDelayTime" min="0" max="1000" value="0" step="1"><output id="fxDelayTimeOut">0 ms</output></div>
+<div class="fx-field"><label>Delay feedback</label><input type="range" id="fxDelayFb" min="0" max="90" value="30"><output id="fxDelayFbOut">30%</output></div>
+<div class="fx-field"><label>Delay mix</label><input type="range" id="fxDelayMix" min="0" max="100" value="0"><output id="fxDelayMixOut">0%</output></div>
+<div class="fx-field"><label>Master filter</label><input type="range" id="fxMasterFilter" min="200" max="20000" value="20000"><output id="fxMasterFilterOut">20k Hz</output></div>
+<div class="fx-field"><label>Master volume</label><input type="range" id="fxMasterVol" min="0" max="100" value="80"><output id="fxMasterVolOut">80%</output></div>
+</div>
+</div>
+
+<footer>Drop your own samples. All processing local in your browser. No upload. Inspired by IDM/glitch aesthetics.</footer>
+</main>
+
+<script>
+'use strict';
+
+/* ── State ─────────────────────────────────────────────────── */
+const $ = s => document.querySelector(s);
+let audioCtx = null;
+let tracks = []; /* {name, buffer, reverseBuffer, steps[], vol, mute, solo} */
+let playing = false;
+let currentStep = -1;
+let stepTimer = null;
+let selectedStep = null; /* {trackIdx, stepIdx} */
+
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function defaultStep() {
+  return { on:false, vel:100, stutter:1, pitch:0, start:0, end:100, reverse:false, probability:100, decay:100, pan:0, filter:20000 };
+}
+
+function getNumSteps() { return +$('#numSteps').value; }
+
+/* ── Sample loading ────────────────────────────────────────── */
+function loadSample(file) {
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const ctx = getCtx();
+    try {
+      const buffer = await ctx.decodeAudioData(reader.result.slice(0));
+      const reverseBuffer = reverseAudioBuffer(ctx, buffer);
+      const n = getNumSteps();
+      const steps = Array.from({length:n}, defaultStep);
+      tracks.push({ name:file.name.replace(/\.[^.]+$/,''), buffer, reverseBuffer, steps, vol:80, mute:false, solo:false });
+      renderTracks();
+    } catch(e) { console.error('Could not decode:', file.name, e); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function reverseAudioBuffer(ctx, buf) {
+  const rev = ctx.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const src = buf.getChannelData(ch);
+    const dst = rev.getChannelData(ch);
+    for (let i = 0; i < buf.length; i++) dst[i] = src[buf.length - 1 - i];
+  }
+  return rev;
+}
+
+/* file input */
+$('#fileInput').addEventListener('change', e => { [...e.target.files].forEach(loadSample); e.target.value=''; });
+const dropZone = $('#dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('over'); [...e.dataTransfer.files].forEach(loadSample); });
+
+/* ── Rendering ─────────────────────────────────────────────── */
+function renderTracks() {
+  const container = $('#tracks');
+  container.innerHTML = '';
+  const n = getNumSteps();
+
+  tracks.forEach((tr, ti) => {
+    /* ensure step array matches */
+    while (tr.steps.length < n) tr.steps.push(defaultStep());
+    if (tr.steps.length > n) tr.steps.length = n;
+
+    const row = document.createElement('div');
+    row.className = 'track';
+
+    /* info */
+    const info = document.createElement('div');
+    info.className = 'track-info';
+    info.innerHTML = `<div class="name" title="${esc(tr.name)}">${esc(tr.name)}</div>
+      <canvas class="waveform" data-ti="${ti}"></canvas>
+      <div class="track-controls">
+        <button class="mute-btn ${tr.mute?'on':''}" data-ti="${ti}">M</button>
+        <button class="solo-btn ${tr.solo?'on':''}" data-ti="${ti}">S</button>
+      </div>
+      <button class="track-remove" data-ti="${ti}">&times;</button>`;
+    row.appendChild(info);
+
+    /* knobs */
+    const knobs = document.createElement('div');
+    knobs.className = 'track-knobs';
+    knobs.innerHTML = `<div class="knob"><label>VOL</label><input type="range" min="0" max="100" value="${tr.vol}" data-ti="${ti}" class="vol-knob"></div>`;
+    row.appendChild(knobs);
+
+    /* steps */
+    const stepsEl = document.createElement('div');
+    stepsEl.className = 'steps';
+    for (let si = 0; si < n; si++) {
+      const s = tr.steps[si];
+      const step = document.createElement('div');
+      let cls = 'step';
+      if (si % (n >= 32 ? 8 : 4) === 0 && si > 0) cls += ' beat-marker';
+      if (s.on) {
+        cls += ' on';
+        if (s.stutter > 1) cls += ' stutter';
+        if (s.reverse) cls += ' reverse';
+        if (s.probability < 100) cls += ' prob';
+      }
+      if (currentStep === si) cls += ' current';
+      step.className = cls;
+      step.dataset.ti = ti;
+      step.dataset.si = si;
+
+      /* velocity bar */
+      const velH = s.on ? Math.round((s.vel / 127) * 28) : 0;
+      step.innerHTML = `<div class="vel-bar" style="height:${velH}px"></div>`;
+      if (si % (n >= 32 ? 8 : 4) === 0) step.innerHTML = `<span class="step-num">${si+1}</span>` + step.innerHTML;
+
+      step.addEventListener('click', e => onStepClick(ti, si, e));
+      step.addEventListener('contextmenu', e => { e.preventDefault(); onStepRightClick(ti, si); });
+      stepsEl.appendChild(step);
+    }
+    row.appendChild(stepsEl);
+    container.appendChild(row);
+  });
+
+  /* draw waveforms */
+  document.querySelectorAll('.waveform').forEach(cv => {
+    const ti = +cv.dataset.ti;
+    drawWaveform(cv, tracks[ti].buffer);
+  });
+
+  /* wire events */
+  document.querySelectorAll('.mute-btn').forEach(b => b.addEventListener('click', () => {
+    const ti = +b.dataset.ti; tracks[ti].mute = !tracks[ti].mute; renderTracks();
+  }));
+  document.querySelectorAll('.solo-btn').forEach(b => b.addEventListener('click', () => {
+    const ti = +b.dataset.ti; tracks[ti].solo = !tracks[ti].solo; renderTracks();
+  }));
+  document.querySelectorAll('.track-remove').forEach(b => b.addEventListener('click', () => {
+    tracks.splice(+b.dataset.ti, 1); selectedStep = null; closeStepEditor(); renderTracks();
+  }));
+  document.querySelectorAll('.vol-knob').forEach(inp => inp.addEventListener('input', () => {
+    tracks[+inp.dataset.ti].vol = +inp.value;
+  }));
+}
+
+function drawWaveform(canvas, buffer) {
+  const w = canvas.clientWidth * 2, h = canvas.clientHeight * 2;
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0e1220';
+  ctx.fillRect(0, 0, w, h);
+  const data = buffer.getChannelData(0);
+  const step = Math.max(1, Math.floor(data.length / w));
+  ctx.strokeStyle = '#ff6b4a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < w; i++) {
+    const idx = i * step;
+    const v = data[idx] || 0;
+    const y = (1 - v) * h / 2;
+    i === 0 ? ctx.moveTo(i, y) : ctx.lineTo(i, y);
+  }
+  ctx.stroke();
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function onStepClick(ti, si, e) {
+  const s = tracks[ti].steps[si];
+  if (e.shiftKey) {
+    /* shift-click opens editor without toggling */
+    selectedStep = { trackIdx: ti, stepIdx: si };
+    openStepEditor();
+    return;
+  }
+  s.on = !s.on;
+  if (s.on && !playing) previewStep(ti, si);
+  selectedStep = s.on ? { trackIdx: ti, stepIdx: si } : null;
+  if (s.on) openStepEditor(); else closeStepEditor();
+  renderTracks();
+}
+
+function onStepRightClick(ti, si) {
+  /* right-click: open step editor for active step */
+  const s = tracks[ti].steps[si];
+  if (!s.on) { s.on = true; }
+  selectedStep = { trackIdx: ti, stepIdx: si };
+  openStepEditor();
+  renderTracks();
+}
+
+/* ── Step Editor ───────────────────────────────────────────── */
+function openStepEditor() {
+  if (!selectedStep) return;
+  const s = tracks[selectedStep.trackIdx].steps[selectedStep.stepIdx];
+  const ed = $('#stepEditor');
+  ed.classList.add('open');
+  $('#seTitle').textContent = `Step ${selectedStep.stepIdx + 1} — ${tracks[selectedStep.trackIdx].name}`;
+  $('#seVel').value = s.vel;          $('#seVelOut').textContent = s.vel;
+  $('#seStutter').value = s.stutter;
+  $('#sePitch').value = s.pitch;      $('#sePitchOut').textContent = (s.pitch > 0 ? '+' : '') + s.pitch;
+  $('#seStart').value = s.start;      $('#seStartOut').textContent = s.start + '%';
+  $('#seEnd').value = s.end;          $('#seEndOut').textContent = s.end + '%';
+  $('#seReverse').value = s.reverse ? '1' : '0';
+  $('#seProbability').value = s.probability; $('#seProbOut').textContent = s.probability + '%';
+  $('#seDecay').value = s.decay;      $('#seDecayOut').textContent = s.decay + '%';
+  $('#sePan').value = s.pan;          $('#sePanOut').textContent = s.pan === 0 ? 'C' : (s.pan < 0 ? 'L' + Math.abs(s.pan) : 'R' + s.pan);
+  $('#seFilter').value = s.filter;    $('#seFilterOut').textContent = s.filter >= 19000 ? '20k' : (s.filter >= 1000 ? (s.filter/1000).toFixed(1)+'k' : s.filter);
+}
+function closeStepEditor() { $('#stepEditor').classList.remove('open'); }
+
+/* wire step editor inputs */
+function wireStepEditor() {
+  const fields = [
+    {id:'seVel',key:'vel',out:'seVelOut',fmt:v=>v},
+    {id:'sePitch',key:'pitch',out:'sePitchOut',fmt:v=>(v>0?'+':'')+v},
+    {id:'seStart',key:'start',out:'seStartOut',fmt:v=>v+'%'},
+    {id:'seEnd',key:'end',out:'seEndOut',fmt:v=>v+'%'},
+    {id:'seProbability',key:'probability',out:'seProbOut',fmt:v=>v+'%'},
+    {id:'seDecay',key:'decay',out:'seDecayOut',fmt:v=>v+'%'},
+    {id:'sePan',key:'pan',out:'sePanOut',fmt:v=>v===0?'C':(v<0?'L'+Math.abs(v):'R'+v)},
+    {id:'seFilter',key:'filter',out:'seFilterOut',fmt:v=>v>=19000?'20k':(v>=1000?(v/1000).toFixed(1)+'k':v)},
+  ];
+  fields.forEach(f => {
+    $(f.id.startsWith('#') ? f.id : '#'+f.id).addEventListener('input', function() {
+      if (!selectedStep) return;
+      const s = tracks[selectedStep.trackIdx].steps[selectedStep.stepIdx];
+      s[f.key] = +this.value;
+      $('#'+f.out).textContent = f.fmt(+this.value);
+      renderTracks();
+    });
+  });
+  $('#seStutter').addEventListener('change', function() {
+    if (!selectedStep) return;
+    tracks[selectedStep.trackIdx].steps[selectedStep.stepIdx].stutter = +this.value;
+    renderTracks();
+  });
+  $('#seReverse').addEventListener('change', function() {
+    if (!selectedStep) return;
+    tracks[selectedStep.trackIdx].steps[selectedStep.stepIdx].reverse = this.value === '1';
+    renderTracks();
+  });
+}
+wireStepEditor();
+
+/* wire FX outputs */
+function wireFx() {
+  const fxFields = [
+    {id:'fxBits',out:'fxBitsOut',fmt:v=>v>=16?'16 bit (off)':v+' bit'},
+    {id:'fxCrushRate',out:'fxCrushRateOut',fmt:v=>v>=44100?'44100 Hz':v+' Hz'},
+    {id:'fxDist',out:'fxDistOut',fmt:v=>v+'%'},
+    {id:'fxDelayTime',out:'fxDelayTimeOut',fmt:v=>v+' ms'},
+    {id:'fxDelayFb',out:'fxDelayFbOut',fmt:v=>v+'%'},
+    {id:'fxDelayMix',out:'fxDelayMixOut',fmt:v=>v+'%'},
+    {id:'fxMasterFilter',out:'fxMasterFilterOut',fmt:v=>v>=19000?'20k Hz':(v>=1000?(v/1000).toFixed(1)+'k Hz':v+' Hz')},
+    {id:'fxMasterVol',out:'fxMasterVolOut',fmt:v=>v+'%'},
+  ];
+  fxFields.forEach(f => {
+    $('#'+f.id).addEventListener('input', function() {
+      $('#'+f.out).textContent = f.fmt(+this.value);
+    });
+  });
+}
+wireFx();
+
+$('#numSteps').addEventListener('change', () => { renderTracks(); });
+
+/* ── Audio Engine ──────────────────────────────────────────── */
+function buildFxChain(ctx) {
+  const masterGain = ctx.createGain();
+  masterGain.gain.value = +$('#fxMasterVol').value / 100;
+
+  /* master filter */
+  const masterFilter = ctx.createBiquadFilter();
+  masterFilter.type = 'lowpass';
+  masterFilter.frequency.value = +$('#fxMasterFilter').value;
+  masterFilter.Q.value = 0.7;
+
+  /* delay */
+  const delayTime = +$('#fxDelayTime').value / 1000;
+  const delayNode = ctx.createDelay(2);
+  delayNode.delayTime.value = delayTime;
+  const delayFb = ctx.createGain();
+  delayFb.gain.value = +$('#fxDelayFb').value / 100;
+  const delayMix = ctx.createGain();
+  delayMix.gain.value = +$('#fxDelayMix').value / 100;
+  const dryGain = ctx.createGain();
+  dryGain.gain.value = 1;
+
+  /* distortion */
+  const distAmt = +$('#fxDist').value;
+  const waveshaper = ctx.createWaveShaper();
+  if (distAmt > 0) {
+    const k = distAmt * 4;
+    const n = 44100, curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = (i * 2) / n - 1;
+      curve[i] = ((3 + k) * x * 20 * (Math.PI / 180)) / (Math.PI + k * Math.abs(x));
+    }
+    waveshaper.curve = curve;
+    waveshaper.oversample = '4x';
+  }
+
+  /* bitcrusher via script processor (or passthrough) */
+  const bits = +$('#fxBits').value;
+  const crushRate = +$('#fxCrushRate').value;
+  let crusher = null;
+  if (bits < 16 || crushRate < 44100) {
+    const bufSize = 4096;
+    crusher = ctx.createScriptProcessor(bufSize, 2, 2);
+    let lastL = 0, lastR = 0, counter = 0;
+    const step = Math.pow(0.5, bits);
+    const ratio = crushRate / ctx.sampleRate;
+    crusher.onaudioprocess = e => {
+      const inL = e.inputBuffer.getChannelData(0);
+      const inR = e.inputBuffer.getChannelData(1);
+      const outL = e.outputBuffer.getChannelData(0);
+      const outR = e.outputBuffer.getChannelData(1);
+      for (let i = 0; i < bufSize; i++) {
+        counter += ratio;
+        if (counter >= 1) {
+          counter -= 1;
+          lastL = step * Math.floor(inL[i] / step + 0.5);
+          lastR = step * Math.floor(inR[i] / step + 0.5);
+        }
+        outL[i] = lastL;
+        outR[i] = lastR;
+      }
+    };
+  }
+
+  /* chain: input -> distortion -> crusher -> delay split -> master filter -> master gain -> dest */
+  const input = ctx.createGain();
+  input.gain.value = 1;
+
+  let chain = input;
+  if (distAmt > 0) { chain.connect(waveshaper); chain = waveshaper; }
+  if (crusher) { chain.connect(crusher); chain = crusher; }
+
+  /* dry path */
+  chain.connect(dryGain);
+  dryGain.connect(masterFilter);
+
+  /* delay path */
+  if (delayTime > 0) {
+    chain.connect(delayNode);
+    delayNode.connect(delayFb);
+    delayFb.connect(delayNode);
+    delayNode.connect(delayMix);
+    delayMix.connect(masterFilter);
+  }
+
+  masterFilter.connect(masterGain);
+  masterGain.connect(ctx.destination);
+
+  return input;
+}
+
+function playSample(ctx, track, step, dest, time) {
+  const s = step;
+  if (!s.on) return;
+  if (Math.random() * 100 > s.probability) return;
+
+  const buf = s.reverse ? track.reverseBuffer : track.buffer;
+  const startFrac = s.start / 100;
+  const endFrac = s.end / 100;
+  const rate = Math.pow(2, s.pitch / 12);
+  const vol = (s.vel / 127) * (track.vol / 100);
+  const decayTime = (s.decay / 100);
+
+  const hasSolo = tracks.some(t => t.solo);
+  if (hasSolo && !track.solo) return;
+  if (track.mute) return;
+
+  const bpm = +$('#bpm').value || 140;
+  const stepDur = (60 / bpm) / (getNumSteps() / 4) * (getNumSteps() >= 32 ? 1 : getNumSteps() >= 16 ? 1 : 2);
+  /* actually: stepDur = one beat / (steps per beat) */
+  const beatsTotal = getNumSteps() / 4;
+  const totalSec = beatsTotal * (60 / bpm);
+  const oneStep = totalSec / getNumSteps();
+
+  for (let r = 0; r < s.stutter; r++) {
+    const stutterOffset = (r / s.stutter) * oneStep;
+    const t = time + stutterOffset;
+
+    const source = ctx.createBufferSource();
+    source.buffer = buf;
+    source.playbackRate.value = rate;
+
+    const sampleDur = buf.duration;
+    const offsetSec = startFrac * sampleDur;
+    const endSec = endFrac * sampleDur;
+    const clipDur = Math.max(0.01, (endSec - offsetSec) / rate);
+
+    /* per-step filter */
+    const flt = ctx.createBiquadFilter();
+    flt.type = 'lowpass';
+    flt.frequency.value = s.filter;
+    flt.Q.value = 1;
+
+    /* pan */
+    const panner = ctx.createStereoPanner();
+    panner.pan.value = s.pan / 100;
+
+    /* gain with decay */
+    const gain = ctx.createGain();
+    const stutterVol = vol / Math.sqrt(s.stutter);
+    gain.gain.setValueAtTime(stutterVol, t);
+    if (decayTime < 1) {
+      const decayLen = clipDur * decayTime;
+      gain.gain.setValueAtTime(stutterVol, t + decayLen * 0.5);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + Math.max(0.02, decayLen));
+    }
+
+    source.connect(flt);
+    flt.connect(panner);
+    panner.connect(gain);
+    gain.connect(dest);
+    source.start(t, offsetSec, clipDur);
+  }
+}
+
+function previewStep(ti, si) {
+  const ctx = getCtx();
+  const dest = buildFxChain(ctx);
+  playSample(ctx, tracks[ti], tracks[ti].steps[si], dest, ctx.currentTime + 0.02);
+}
+
+/* ── Transport ─────────────────────────────────────────────── */
+$('#playBtn').addEventListener('click', () => {
+  if (playing) return;
+  if (tracks.length === 0) return;
+  playing = true;
+  $('#playBtn').classList.add('active');
+  currentStep = -1;
+  const ctx = getCtx();
+  const dest = buildFxChain(ctx);
+  scheduleNext(ctx, dest);
+});
+
+function scheduleNext(ctx, dest) {
+  if (!playing) return;
+  currentStep = (currentStep + 1) % getNumSteps();
+  const bpm = +$('#bpm').value || 140;
+  const n = getNumSteps();
+  const beatSec = 60 / bpm;
+  const stepSec = beatSec / (n / 4);
+  /* swing: offset even-numbered 16th-note equivalents */
+  const swingAmt = +$('#swing').value / 100;
+  const swingOffset = (currentStep % 2 === 1) ? stepSec * swingAmt * 0.5 : 0;
+
+  const now = ctx.currentTime + 0.01;
+  tracks.forEach((tr, ti) => {
+    playSample(ctx, tr, tr.steps[currentStep], dest, now + swingOffset);
+  });
+
+  highlightStep(currentStep);
+  const nextTime = (stepSec + (currentStep % 2 === 1 ? swingOffset : 0)) * 1000;
+  stepTimer = setTimeout(() => scheduleNext(ctx, dest), stepSec * 1000);
+}
+
+function highlightStep(si) {
+  document.querySelectorAll('.step.current').forEach(el => el.classList.remove('current'));
+  document.querySelectorAll(`.step[data-si="${si}"]`).forEach(el => el.classList.add('current'));
+}
+
+$('#stopBtn').addEventListener('click', stopPlayback);
+function stopPlayback() {
+  playing = false;
+  currentStep = -1;
+  if (stepTimer) clearTimeout(stepTimer);
+  $('#playBtn').classList.remove('active');
+  document.querySelectorAll('.step.current').forEach(el => el.classList.remove('current'));
+}
+
+/* ── Random fill ───────────────────────────────────────────── */
+$('#randomBtn').addEventListener('click', () => {
+  const n = getNumSteps();
+  tracks.forEach(tr => {
+    for (let i = 0; i < n; i++) {
+      const s = tr.steps[i];
+      s.on = Math.random() < 0.35;
+      if (s.on) {
+        s.vel = 40 + Math.floor(Math.random() * 88);
+        s.stutter = [1,1,1,1,2,2,4,8,16][Math.floor(Math.random()*9)];
+        s.pitch = Math.random() < 0.2 ? Math.floor(Math.random()*13)-6 : 0;
+        s.reverse = Math.random() < 0.12;
+        s.probability = Math.random() < 0.15 ? 30+Math.floor(Math.random()*60) : 100;
+        s.start = Math.random() < 0.15 ? Math.floor(Math.random()*40) : 0;
+        s.end = 100;
+        s.decay = Math.random() < 0.2 ? 20+Math.floor(Math.random()*60) : 100;
+        s.pan = Math.random() < 0.15 ? Math.floor(Math.random()*100)-50 : 0;
+        s.filter = Math.random() < 0.15 ? 500+Math.floor(Math.random()*8000) : 20000;
+      }
+    }
+  });
+  renderTracks();
+});
+
+$('#clearAllBtn').addEventListener('click', () => {
+  tracks.forEach(tr => tr.steps.forEach(s => { s.on = false; }));
+  selectedStep = null;
+  closeStepEditor();
+  renderTracks();
+});
+
+/* ── WAV Export (offline render) ───────────────────────────── */
+$('#exportBtn').addEventListener('click', async () => {
+  if (tracks.length === 0) return;
+  const bpm = +$('#bpm').value || 140;
+  const n = getNumSteps();
+  const beatSec = 60 / bpm;
+  const stepSec = beatSec / (n / 4);
+  const totalSec = n * stepSec + 2; /* extra tail for delay/reverb */
+  const sampleRate = 44100;
+
+  const offCtx = new OfflineAudioContext(2, Math.ceil(totalSec * sampleRate), sampleRate);
+
+  /* rebuild FX chain for offline context */
+  const masterGain = offCtx.createGain();
+  masterGain.gain.value = +$('#fxMasterVol').value / 100;
+  const masterFilter = offCtx.createBiquadFilter();
+  masterFilter.type = 'lowpass';
+  masterFilter.frequency.value = +$('#fxMasterFilter').value;
+  masterFilter.Q.value = 0.7;
+
+  const delayTime = +$('#fxDelayTime').value / 1000;
+  const delayNode = offCtx.createDelay(2);
+  delayNode.delayTime.value = delayTime;
+  const delayFb = offCtx.createGain();
+  delayFb.gain.value = +$('#fxDelayFb').value / 100;
+  const delayMix = offCtx.createGain();
+  delayMix.gain.value = +$('#fxDelayMix').value / 100;
+  const dryGain = offCtx.createGain();
+  dryGain.gain.value = 1;
+
+  const distAmt = +$('#fxDist').value;
+  const waveshaper = offCtx.createWaveShaper();
+  if (distAmt > 0) {
+    const k = distAmt * 4;
+    const nn = 44100, curve = new Float32Array(nn);
+    for (let i = 0; i < nn; i++) { const x = (i*2)/nn-1; curve[i] = ((3+k)*x*20*(Math.PI/180))/(Math.PI+k*Math.abs(x)); }
+    waveshaper.curve = curve; waveshaper.oversample = '4x';
+  }
+
+  const input = offCtx.createGain(); input.gain.value = 1;
+  let chain = input;
+  if (distAmt > 0) { chain.connect(waveshaper); chain = waveshaper; }
+  chain.connect(dryGain); dryGain.connect(masterFilter);
+  if (delayTime > 0) { chain.connect(delayNode); delayNode.connect(delayFb); delayFb.connect(delayNode); delayNode.connect(delayMix); delayMix.connect(masterFilter); }
+  masterFilter.connect(masterGain); masterGain.connect(offCtx.destination);
+
+  /* schedule all steps */
+  const swingAmt = +$('#swing').value / 100;
+  for (let si = 0; si < n; si++) {
+    const swingOff = (si % 2 === 1) ? stepSec * swingAmt * 0.5 : 0;
+    const t = si * stepSec + swingOff;
+    tracks.forEach((tr, ti) => {
+      const s = tr.steps[si];
+      if (!s.on) return;
+      if (Math.random() * 100 > s.probability) return;
+      const hasSolo = tracks.some(x => x.solo);
+      if (hasSolo && !tr.solo) return;
+      if (tr.mute) return;
+
+      const buf = s.reverse ? tr.reverseBuffer : tr.buffer;
+      const rate = Math.pow(2, s.pitch / 12);
+      const vol = (s.vel / 127) * (tr.vol / 100);
+
+      for (let r = 0; r < s.stutter; r++) {
+        const stuttOff = (r / s.stutter) * stepSec;
+        const playT = t + stuttOff;
+        const source = offCtx.createBufferSource();
+        source.buffer = buf;
+        source.playbackRate.value = rate;
+        const startF = s.start / 100, endF = s.end / 100;
+        const offSec = startF * buf.duration;
+        const clipDur = Math.max(0.01, (endF * buf.duration - offSec) / rate);
+
+        const flt = offCtx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = s.filter; flt.Q.value = 1;
+        const panner = offCtx.createStereoPanner(); panner.pan.value = s.pan / 100;
+        const gain = offCtx.createGain();
+        const sv = vol / Math.sqrt(s.stutter);
+        gain.gain.setValueAtTime(sv, playT);
+        if (s.decay < 100) {
+          const dl = clipDur * (s.decay / 100);
+          gain.gain.setValueAtTime(sv, playT + dl * 0.5);
+          gain.gain.exponentialRampToValueAtTime(0.001, playT + Math.max(0.02, dl));
+        }
+        source.connect(flt); flt.connect(panner); panner.connect(gain); gain.connect(input);
+        source.start(playT, offSec, clipDur);
+      }
+    });
+  }
+
+  const rendered = await offCtx.startRendering();
+  downloadWav(rendered);
+});
+
+function downloadWav(buffer) {
+  const numCh = buffer.numberOfChannels;
+  const len = buffer.length;
+  const sampleRate = buffer.sampleRate;
+  const bytesPerSample = 2;
+  const dataLen = len * numCh * bytesPerSample;
+  const buf = new ArrayBuffer(44 + dataLen);
+  const view = new DataView(buf);
+
+  function writeStr(offset, str) { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); }
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + dataLen, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numCh, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * numCh * bytesPerSample, true);
+  view.setUint16(32, numCh * bytesPerSample, true);
+  view.setUint16(34, bytesPerSample * 8, true);
+  writeStr(36, 'data');
+  view.setUint32(40, dataLen, true);
+
+  const channels = [];
+  for (let c = 0; c < numCh; c++) channels.push(buffer.getChannelData(c));
+  let offset = 44;
+  for (let i = 0; i < len; i++) {
+    for (let c = 0; c < numCh; c++) {
+      const s = Math.max(-1, Math.min(1, channels[c][i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      offset += 2;
+    }
+  }
+
+  const blob = new Blob([buf], { type: 'audio/wav' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `GlitchDrums_${+$('#bpm').value}bpm.wav`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ── Keyboard shortcuts ────────────────────────────────────── */
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.code === 'Space') { e.preventDefault(); playing ? stopPlayback() : $('#playBtn').click(); }
+});
+
+/* ── Default samples (built-in click sounds) ───────────────── */
+function createDefaultSamples() {
+  const ctx = getCtx();
+  const sr = ctx.sampleRate;
+
+  function makeKick() {
+    const len = sr * 0.3;
+    const buf = ctx.createBuffer(1, len, sr);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const freq = 150 * Math.exp(-t * 30) + 40;
+      d[i] = Math.sin(2 * Math.PI * freq * t) * Math.exp(-t * 12) * 0.9;
+    }
+    return buf;
+  }
+  function makeSnare() {
+    const len = sr * 0.2;
+    const buf = ctx.createBuffer(1, len, sr);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const tone = Math.sin(2 * Math.PI * 200 * t) * Math.exp(-t * 30) * 0.5;
+      const noise = (Math.random() * 2 - 1) * Math.exp(-t * 18) * 0.6;
+      d[i] = tone + noise;
+    }
+    return buf;
+  }
+  function makeHihat() {
+    const len = sr * 0.08;
+    const buf = ctx.createBuffer(1, len, sr);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 60) * 0.4;
+    }
+    return buf;
+  }
+  function makeClap() {
+    const len = sr * 0.15;
+    const buf = ctx.createBuffer(1, len, sr);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      const burst = t < 0.01 || (t > 0.015 && t < 0.025) || (t > 0.03 && t < 0.04);
+      d[i] = burst ? (Math.random() * 2 - 1) * 0.7 : (Math.random() * 2 - 1) * Math.exp(-t * 25) * 0.3;
+    }
+    return buf;
+  }
+  function makeRim() {
+    const len = sr * 0.04;
+    const buf = ctx.createBuffer(1, len, sr);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      d[i] = (Math.sin(2 * Math.PI * 800 * t) + Math.sin(2 * Math.PI * 1400 * t) * 0.5) * Math.exp(-t * 120) * 0.6;
+    }
+    return buf;
+  }
+
+  const defaults = [
+    { name: 'KICK', buf: makeKick() },
+    { name: 'SNARE', buf: makeSnare() },
+    { name: 'HIHAT', buf: makeHihat() },
+    { name: 'CLAP', buf: makeClap() },
+    { name: 'RIM', buf: makeRim() },
+  ];
+  const n = getNumSteps();
+  defaults.forEach(d => {
+    tracks.push({
+      name: d.name,
+      buffer: d.buf,
+      reverseBuffer: reverseAudioBuffer(ctx, d.buf),
+      steps: Array.from({length:n}, defaultStep),
+      vol: 80,
+      mute: false,
+      solo: false,
+    });
+  });
+  renderTracks();
+}
+createDefaultSamples();
+
+</script>
+</body>
+</html>

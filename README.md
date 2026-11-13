@@ -3,6 +3,7 @@ A place where I just put code of stuff I made with AI
 
 ## Projects
 
+- [GlitchDrums](GlitchDrums/) — IDM/glitch drum machine: upload samples, per-step stutter, pitch, reverse, slice, bitcrusher, WAV export. [▶ Run it](https://antoinefortin.github.io/Aideas/GlitchDrums/)
 - [MidiSketch](MidiSketch/) — Theory-driven MIDI arranger: pick a scale, build chord progressions, add bass and melody, preview and export MIDI. [▶ Run it](https://antoinefortin.github.io/Aideas/MidiSketch/)
 - [TorrentDrop](TorrentDrop/) — Paste a magnet link or drop a .torrent, get direct download links. Pure browser, no server. [▶ Run it](https://antoinefortin.github.io/Aideas/TorrentDrop/)
 - [SilenceCut](Silencer/) — Remove silence from audio recordings directly in your browser. No uploads, no server. [▶ Run it](https://antoinefortin.github.io/Aideas/Silencer/)
