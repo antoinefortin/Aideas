@@ -38,11 +38,14 @@ button:hover{filter:brightness(1.1)}button:disabled{opacity:.35;cursor:default}
 .controls label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px}
 .controls input[type=number]{width:60px;padding:6px 8px;font-size:13px}
 .controls select{padding:6px 8px;font-size:13px}
-.track-toggle{display:flex;gap:14px;margin:12px 0}
+.track-toggle{display:flex;gap:14px;margin:12px 0;flex-wrap:wrap}
 .track-toggle label{font-size:12px;display:flex;align-items:center;gap:5px;color:var(--muted);cursor:pointer}
 .track-toggle input:checked+span{color:var(--text)}
 .track-toggle input{accent-color:var(--accent)}
 .legend-dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:3px}
+.track-instruments{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0 4px}
+.track-instruments>div{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.track-instruments select{padding:5px 8px;font-size:12px;background:#0e1220;border:1px solid var(--line);border-radius:6px;color:var(--text)}
 /* piano roll */
 .piano-roll-wrap{position:relative;background:#0a0d16;border-radius:14px;overflow:hidden;border:1px solid var(--line);margin-top:16px}
 .piano-roll-wrap canvas{display:block;width:100%}
@@ -94,6 +97,14 @@ footer{color:var(--muted);font-size:11px;text-align:center;margin-top:28px}
 <label><input type="checkbox" id="chkChords" checked><span><span class="legend-dot" style="background:#7e6cc9"></span>Chords</span></label>
 <label><input type="checkbox" id="chkBass" checked><span><span class="legend-dot" style="background:#4a9"></span>Bassline</span></label>
 <label><input type="checkbox" id="chkMelody" checked><span><span class="legend-dot" style="background:#d48ce0"></span>Melody</span></label>
+</div>
+<div class="track-instruments">
+<div><span class="legend-dot" style="background:#7e6cc9"></span>Chords:
+<select id="instChords"><option value="piano">Piano</option><option value="epiano">Electric Piano</option><option value="organ">Organ</option><option value="pad">Pad</option><option value="strings">Strings</option></select></div>
+<div><span class="legend-dot" style="background:#4a9"></span>Bass:
+<select id="instBass"><option value="sub">Sub Bass</option><option value="finger">Finger Bass</option><option value="synth">Synth Bass</option><option value="upright">Upright</option></select></div>
+<div><span class="legend-dot" style="background:#d48ce0"></span>Melody:
+<select id="instMelody"><option value="lead">Pulse Lead</option><option value="sine">Sine Lead</option><option value="saw">Saw Lead</option><option value="bell">Bell</option><option value="flute">Flute</option><option value="pluck">Pluck</option></select></div>
 </div>
 <div class="piano-roll-wrap">
 <canvas id="pianoRoll" height="360"></canvas>
@@ -469,7 +480,7 @@ function drawPianoRoll(playheadSec){
 
 window.addEventListener('resize',()=>drawPianoRoll());
 
-/* ── Better Synth (Web Audio) ──────────────────────────────── */
+/* ── Synth Engine (Web Audio) ──────────────────────────────── */
 function getAudioCtx(){
   if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
   return audioCtx;
@@ -486,85 +497,182 @@ function createReverb(ctx){
   return convolver;
 }
 
-function playPianoNote(ctx,freq,start,dur,vol,dest){
-  /* two detuned oscillators + filter for a warm piano-ish tone */
-  const g=ctx.createGain();
-  const flt=ctx.createBiquadFilter();
-  flt.type='lowpass';flt.frequency.setValueAtTime(2400,start);
-  flt.frequency.exponentialRampToValueAtTime(600,start+dur*0.7);
-  flt.Q.value=0.7;
-
-  for(let detune of [-4,4]){
-    const osc=ctx.createOscillator();
-    osc.type='triangle';osc.frequency.value=freq;osc.detune.value=detune;
-    osc.connect(flt);osc.start(start);osc.stop(start+dur+0.1);
-    activeNodes.push(osc);
-  }
-  /* subtle harmonic */
-  const osc2=ctx.createOscillator();
-  osc2.type='sine';osc2.frequency.value=freq*2;
-  const g2=ctx.createGain();g2.gain.value=0.08;
-  osc2.connect(g2);g2.connect(flt);osc2.start(start);osc2.stop(start+dur+0.1);
-  activeNodes.push(osc2);
-
-  /* ADSR-ish envelope */
-  g.gain.setValueAtTime(0.001,start);
-  g.gain.linearRampToValueAtTime(vol,start+0.01);
-  g.gain.setValueAtTime(vol,start+0.01);
-  g.gain.exponentialRampToValueAtTime(vol*0.6,start+dur*0.3);
-  g.gain.exponentialRampToValueAtTime(0.001,start+dur+0.05);
-
-  flt.connect(g);g.connect(dest);
-  activeNodes.push(g,flt);
+function osc(ctx,type,freq,detune,start,stop,dest){
+  const o=ctx.createOscillator();o.type=type;o.frequency.value=freq;o.detune.value=detune||0;
+  o.connect(dest);o.start(start);o.stop(stop);activeNodes.push(o);return o;
 }
-
-function playBassNote(ctx,freq,start,dur,vol,dest){
-  const g=ctx.createGain();
-  const flt=ctx.createBiquadFilter();
-  flt.type='lowpass';flt.frequency.value=800;flt.Q.value=2;
-
-  /* sub sine + saw */
-  const sub=ctx.createOscillator();sub.type='sine';sub.frequency.value=freq;
-  sub.connect(flt);sub.start(start);sub.stop(start+dur+0.05);
-  activeNodes.push(sub);
-
-  const saw=ctx.createOscillator();saw.type='sawtooth';saw.frequency.value=freq;
-  const sg=ctx.createGain();sg.gain.value=0.3;
-  saw.connect(sg);sg.connect(flt);saw.start(start);saw.stop(start+dur+0.05);
-  activeNodes.push(saw);
-
+function filt(ctx,type,freq,q){
+  const f=ctx.createBiquadFilter();f.type=type;f.frequency.value=freq;f.Q.value=q||0.7;activeNodes.push(f);return f;
+}
+function gain(ctx,v){const g=ctx.createGain();g.gain.value=v;activeNodes.push(g);return g;}
+function env(g,start,atk,peak,decay,sustain,dur){
   g.gain.setValueAtTime(0.001,start);
-  g.gain.linearRampToValueAtTime(vol,start+0.015);
-  g.gain.exponentialRampToValueAtTime(vol*0.7,start+dur*0.4);
+  g.gain.linearRampToValueAtTime(peak,start+atk);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.001,sustain),start+atk+decay);
+  g.gain.setValueAtTime(Math.max(0.001,sustain),start+dur*0.8);
   g.gain.exponentialRampToValueAtTime(0.001,start+dur);
-
-  flt.connect(g);g.connect(dest);
-  activeNodes.push(g,flt);
 }
 
-function playLeadNote(ctx,freq,start,dur,vol,dest){
-  const g=ctx.createGain();
-  const flt=ctx.createBiquadFilter();
-  flt.type='lowpass';flt.frequency.setValueAtTime(3000,start);
-  flt.frequency.exponentialRampToValueAtTime(1200,start+dur*0.5);
-  flt.Q.value=1.5;
+/* ── Chord instruments ──────────────────────────────────────── */
+const chordSynths = {
+  piano(ctx,freq,start,dur,vol,dest){
+    const f=filt(ctx,'lowpass',2400,0.7);f.frequency.setValueAtTime(2400,start);f.frequency.exponentialRampToValueAtTime(600,start+dur*0.7);
+    osc(ctx,'triangle',freq,-4,start,start+dur+0.1,f);osc(ctx,'triangle',freq,4,start,start+dur+0.1,f);
+    const h=gain(ctx,0.08);osc(ctx,'sine',freq*2,0,start,start+dur+0.1,h);h.connect(f);
+    const g=gain(ctx,0);env(g,start,0.01,vol,dur*0.25,vol*0.5,dur+0.05);f.connect(g);g.connect(dest);
+  },
+  epiano(ctx,freq,start,dur,vol,dest){
+    /* FM electric piano: carrier sine modulated by sine at ratio ~1:1 */
+    const modG=gain(ctx,freq*1.2);
+    osc(ctx,'sine',freq*1.01,0,start,start+dur+0.1,modG);
+    const carrier=ctx.createOscillator();carrier.type='sine';carrier.frequency.value=freq;
+    modG.connect(carrier.frequency);carrier.connect(ctx.destination);/* temp */
+    const f=filt(ctx,'lowpass',4000,0.5);
+    carrier.disconnect();carrier.connect(f);carrier.start(start);carrier.stop(start+dur+0.1);activeNodes.push(carrier);
+    /* fast decay */
+    modG.gain.setValueAtTime(freq*1.2,start);modG.gain.exponentialRampToValueAtTime(freq*0.1,start+dur*0.6);
+    const g=gain(ctx,0);env(g,start,0.005,vol,dur*0.15,vol*0.35,dur+0.05);f.connect(g);g.connect(dest);
+  },
+  organ(ctx,freq,start,dur,vol,dest){
+    /* additive: fundamental + 2nd + 3rd harmonics */
+    const mix=gain(ctx,1);
+    osc(ctx,'sine',freq,0,start,start+dur+0.05,mix);
+    const h2=gain(ctx,0.6);osc(ctx,'sine',freq*2,0,start,start+dur+0.05,h2);h2.connect(mix);
+    const h3=gain(ctx,0.3);osc(ctx,'sine',freq*3,0,start,start+dur+0.05,h3);h3.connect(mix);
+    /* slight vibrato */
+    const lfo=ctx.createOscillator();lfo.type='sine';lfo.frequency.value=5.5;
+    const lfoG=gain(ctx,3);lfo.connect(lfoG);lfo.start(start);lfo.stop(start+dur+0.05);activeNodes.push(lfo);
+    /* connect lfo to all osc frequencies - skip for simplicity, just use env */
+    const g=gain(ctx,0);env(g,start,0.02,vol,0.05,vol*0.9,dur);mix.connect(g);g.connect(dest);
+  },
+  pad(ctx,freq,start,dur,vol,dest){
+    /* slow attack detuned saws through LP filter */
+    const f=filt(ctx,'lowpass',1200,0.8);
+    for(let d of [-8,-3,3,8]) osc(ctx,'sawtooth',freq,d,start,start+dur+0.2,f);
+    const g=gain(ctx,0);
+    g.gain.setValueAtTime(0.001,start);
+    g.gain.linearRampToValueAtTime(vol,start+dur*0.35);
+    g.gain.setValueAtTime(vol,start+dur*0.7);
+    g.gain.exponentialRampToValueAtTime(0.001,start+dur+0.15);
+    f.connect(g);g.connect(dest);
+  },
+  strings(ctx,freq,start,dur,vol,dest){
+    /* slow attack, detuned saws, narrow bandpass layered with LP */
+    const f=filt(ctx,'lowpass',2000,0.5);
+    for(let d of [-6,0,6]) osc(ctx,'sawtooth',freq,d,start,start+dur+0.15,f);
+    const g=gain(ctx,0);
+    g.gain.setValueAtTime(0.001,start);
+    g.gain.linearRampToValueAtTime(vol,start+dur*0.25);
+    g.gain.exponentialRampToValueAtTime(vol*0.8,start+dur*0.6);
+    g.gain.exponentialRampToValueAtTime(0.001,start+dur+0.1);
+    f.connect(g);g.connect(dest);
+  },
+};
 
-  /* pulse-ish: two squares detuned */
-  for(let det of [-6,6]){
-    const osc=ctx.createOscillator();osc.type='square';osc.frequency.value=freq;osc.detune.value=det;
-    const og=ctx.createGain();og.gain.value=0.5;
-    osc.connect(og);og.connect(flt);osc.start(start);osc.stop(start+dur+0.05);
-    activeNodes.push(osc);
-  }
+/* ── Bass instruments ───────────────────────────────────────── */
+const bassSynths = {
+  sub(ctx,freq,start,dur,vol,dest){
+    const f=filt(ctx,'lowpass',800,2);
+    osc(ctx,'sine',freq,0,start,start+dur+0.05,f);
+    const sg=gain(ctx,0.3);osc(ctx,'sawtooth',freq,0,start,start+dur+0.05,sg);sg.connect(f);
+    const g=gain(ctx,0);env(g,start,0.015,vol,dur*0.3,vol*0.7,dur);f.connect(g);g.connect(dest);
+  },
+  finger(ctx,freq,start,dur,vol,dest){
+    /* plucky: triangle + noise burst */
+    const f=filt(ctx,'lowpass',1600,1.5);
+    f.frequency.setValueAtTime(1600,start);f.frequency.exponentialRampToValueAtTime(400,start+dur*0.3);
+    osc(ctx,'triangle',freq,0,start,start+dur+0.05,f);
+    const g=gain(ctx,0);
+    g.gain.setValueAtTime(0.001,start);
+    g.gain.linearRampToValueAtTime(vol,start+0.008);
+    g.gain.exponentialRampToValueAtTime(vol*0.3,start+dur*0.2);
+    g.gain.exponentialRampToValueAtTime(0.001,start+dur);
+    f.connect(g);g.connect(dest);
+  },
+  synth(ctx,freq,start,dur,vol,dest){
+    /* resonant saw bass */
+    const f=filt(ctx,'lowpass',1200,6);
+    f.frequency.setValueAtTime(2000,start);f.frequency.exponentialRampToValueAtTime(400,start+dur*0.4);
+    osc(ctx,'sawtooth',freq,0,start,start+dur+0.05,f);
+    const sub=gain(ctx,0.5);osc(ctx,'sine',freq,0,start,start+dur+0.05,sub);sub.connect(f);
+    const g=gain(ctx,0);env(g,start,0.01,vol,dur*0.2,vol*0.6,dur);f.connect(g);g.connect(dest);
+  },
+  upright(ctx,freq,start,dur,vol,dest){
+    /* warm: triangle + subtle saw, low filter, medium decay */
+    const f=filt(ctx,'lowpass',600,0.8);
+    osc(ctx,'triangle',freq,0,start,start+dur+0.05,f);
+    const sg=gain(ctx,0.15);osc(ctx,'sawtooth',freq,0,start,start+dur+0.05,sg);sg.connect(f);
+    const g=gain(ctx,0);
+    g.gain.setValueAtTime(0.001,start);
+    g.gain.linearRampToValueAtTime(vol,start+0.025);
+    g.gain.exponentialRampToValueAtTime(vol*0.5,start+dur*0.4);
+    g.gain.exponentialRampToValueAtTime(0.001,start+dur);
+    f.connect(g);g.connect(dest);
+  },
+};
 
-  g.gain.setValueAtTime(0.001,start);
-  g.gain.linearRampToValueAtTime(vol,start+0.02);
-  g.gain.setValueAtTime(vol,start+dur*0.6);
-  g.gain.exponentialRampToValueAtTime(0.001,start+dur);
-
-  flt.connect(g);g.connect(dest);
-  activeNodes.push(g,flt);
-}
+/* ── Melody instruments ─────────────────────────────────────── */
+const melodySynths = {
+  lead(ctx,freq,start,dur,vol,dest){
+    const f=filt(ctx,'lowpass',3000,1.5);f.frequency.setValueAtTime(3000,start);f.frequency.exponentialRampToValueAtTime(1200,start+dur*0.5);
+    for(let d of [-6,6]){const og=gain(ctx,0.5);osc(ctx,'square',freq,d,start,start+dur+0.05,og);og.connect(f);}
+    const g=gain(ctx,0);env(g,start,0.02,vol,dur*0.2,vol*0.7,dur);f.connect(g);g.connect(dest);
+  },
+  sine(ctx,freq,start,dur,vol,dest){
+    /* clean sine with gentle vibrato */
+    const o=ctx.createOscillator();o.type='sine';o.frequency.value=freq;
+    const lfo=ctx.createOscillator();lfo.type='sine';lfo.frequency.value=5;
+    const lfoG=gain(ctx,3);lfo.connect(lfoG);lfoG.connect(o.frequency);
+    lfo.start(start);lfo.stop(start+dur+0.05);activeNodes.push(lfo);
+    const g=gain(ctx,0);env(g,start,0.03,vol,dur*0.2,vol*0.8,dur);
+    o.connect(g);g.connect(dest);o.start(start);o.stop(start+dur+0.05);activeNodes.push(o);
+  },
+  saw(ctx,freq,start,dur,vol,dest){
+    const f=filt(ctx,'lowpass',4000,1);f.frequency.setValueAtTime(5000,start);f.frequency.exponentialRampToValueAtTime(1500,start+dur*0.6);
+    osc(ctx,'sawtooth',freq,0,start,start+dur+0.05,f);
+    const g=gain(ctx,0);env(g,start,0.015,vol,dur*0.2,vol*0.6,dur);f.connect(g);g.connect(dest);
+  },
+  bell(ctx,freq,start,dur,vol,dest){
+    /* FM bell: carrier:modulator ratio ~1:3.5 */
+    const modG=gain(ctx,freq*4);
+    osc(ctx,'sine',freq*3.5,0,start,start+dur+0.2,modG);
+    modG.gain.setValueAtTime(freq*4,start);modG.gain.exponentialRampToValueAtTime(freq*0.1,start+dur*0.8);
+    const carrier=ctx.createOscillator();carrier.type='sine';carrier.frequency.value=freq;
+    modG.connect(carrier.frequency);
+    const g=gain(ctx,0);
+    g.gain.setValueAtTime(0.001,start);g.gain.linearRampToValueAtTime(vol,start+0.003);
+    g.gain.exponentialRampToValueAtTime(vol*0.3,start+dur*0.3);
+    g.gain.exponentialRampToValueAtTime(0.001,start+dur+0.15);
+    carrier.connect(g);g.connect(dest);carrier.start(start);carrier.stop(start+dur+0.2);activeNodes.push(carrier);
+  },
+  flute(ctx,freq,start,dur,vol,dest){
+    /* sine + breathy noise */
+    const f=filt(ctx,'bandpass',freq,2);
+    const bufLen=ctx.sampleRate*Math.ceil(dur+0.1);
+    const noiseBuf=ctx.createBuffer(1,bufLen,ctx.sampleRate);
+    const nd=noiseBuf.getChannelData(0);for(let i=0;i<bufLen;i++)nd[i]=(Math.random()*2-1);
+    const noise=ctx.createBufferSource();noise.buffer=noiseBuf;noise.connect(f);noise.start(start);noise.stop(start+dur+0.05);activeNodes.push(noise);
+    const nGain=gain(ctx,vol*0.35);f.connect(nGain);
+    const mix=gain(ctx,1);nGain.connect(mix);
+    osc(ctx,'sine',freq,0,start,start+dur+0.05,mix);
+    const g=gain(ctx,0);
+    g.gain.setValueAtTime(0.001,start);g.gain.linearRampToValueAtTime(vol,start+0.08);
+    g.gain.setValueAtTime(vol,start+dur*0.7);g.gain.exponentialRampToValueAtTime(0.001,start+dur);
+    mix.connect(g);g.connect(dest);
+  },
+  pluck(ctx,freq,start,dur,vol,dest){
+    /* bright attack, fast decay, filtered saw */
+    const f=filt(ctx,'lowpass',5000,1);
+    f.frequency.setValueAtTime(6000,start);f.frequency.exponentialRampToValueAtTime(800,start+dur*0.25);
+    osc(ctx,'sawtooth',freq,0,start,start+dur+0.05,f);
+    osc(ctx,'triangle',freq,0,start,start+dur+0.05,f);
+    const g=gain(ctx,0);
+    g.gain.setValueAtTime(0.001,start);g.gain.linearRampToValueAtTime(vol,start+0.005);
+    g.gain.exponentialRampToValueAtTime(vol*0.15,start+dur*0.2);
+    g.gain.exponentialRampToValueAtTime(0.001,start+dur);
+    f.connect(g);g.connect(dest);
+  },
+};
 
 /* ── Playback ──────────────────────────────────────────────── */
 $('#playBtn').addEventListener('click',()=>{
@@ -590,15 +698,19 @@ $('#playBtn').addEventListener('click',()=>{
   const dry=ctx.createGain(); dry.gain.value=1;
   dry.connect(ctx.destination); dry.connect(reverb);
 
-  /* schedule notes */
+  /* schedule notes using selected instruments */
+  const chordInst = chordSynths[$('#instChords').value] || chordSynths.piano;
+  const bassInst = bassSynths[$('#instBass').value] || bassSynths.sub;
+  const melInst = melodySynths[$('#instMelody').value] || melodySynths.lead;
+
   cachedEvents.chords.forEach(e=>{
-    playPianoNote(ctx,midiToFreq(e.midi),now+e.time,e.dur,0.07,dry);
+    chordInst(ctx,midiToFreq(e.midi),now+e.time,e.dur,0.07,dry);
   });
   cachedEvents.bass.forEach(e=>{
-    playBassNote(ctx,midiToFreq(e.midi),now+e.time,e.dur,0.14,dry);
+    bassInst(ctx,midiToFreq(e.midi),now+e.time,e.dur,0.14,dry);
   });
   cachedEvents.melody.forEach(e=>{
-    playLeadNote(ctx,midiToFreq(e.midi),now+e.time,e.dur,0.055,dry);
+    melInst(ctx,midiToFreq(e.midi),now+e.time,e.dur,0.055,dry);
   });
 
   /* chip highlights */
