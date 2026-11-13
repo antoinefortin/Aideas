@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PodTube — YouTube to Podcast Feed</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0a;--surface:#141414;--surface2:#1e1e1e;--border:#2a2a2a;--accent:#ff4444;--accent2:#cc3333;--text:#eee;--text2:#888;--green:#22cc66;--radius:10px}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100dvh}
+
+header{padding:24px 20px 0;text-align:center}
+header h1{font-size:28px;font-weight:700;letter-spacing:-1px}
+header h1 span{color:var(--accent)}
+header p{color:var(--text2);font-size:14px;margin-top:6px}
+
+.container{max-width:640px;margin:0 auto;padding:20px}
+
+/* INPUT */
+.input-row{display:flex;gap:8px;margin-bottom:20px}
+#urlInput{flex:1;padding:12px 16px;font-size:15px;font-family:inherit;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);outline:none;transition:border-color 0.15s}
+#urlInput:focus{border-color:var(--accent)}
+#urlInput::placeholder{color:var(--text2)}
+.btn{font-family:inherit;cursor:pointer;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;padding:12px 18px;transition:all 0.15s}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:var(--accent2)}
+.btn-accent:disabled{opacity:0.4;cursor:not-allowed}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--border)}
+.btn-small{padding:8px 12px;font-size:12px}
+
+/* FEED CONFIG */
+.feed-config{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:20px}
+.feed-config h3{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text2)}
+.config-row{display:flex;gap:8px;margin-bottom:10px}
+.config-row:last-child{margin-bottom:0}
+.config-row label{font-size:13px;color:var(--text2);min-width:80px;padding-top:8px}
+.config-row input{flex:1;padding:8px 12px;font-size:14px;font-family:inherit;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);outline:none}
+.config-row input:focus{border-color:var(--accent)}
+
+/* VIDEO LIST */
+.video-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.video-item{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;animation:fadeIn 0.2s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.video-thumb{width:80px;height:45px;border-radius:6px;object-fit:cover;background:var(--surface2);flex-shrink:0}
+.video-info{flex:1;min-width:0}
+.video-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.video-channel{font-size:11px;color:var(--text2);margin-top:2px}
+.video-remove{width:28px;height:28px;border-radius:50%;background:transparent;border:none;color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s}
+.video-remove:hover{background:var(--accent);color:#fff}
+.video-loading{color:var(--text2);font-size:13px;padding:12px;text-align:center}
+.video-error{color:var(--accent);font-size:13px}
+
+/* ACTIONS */
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+
+/* OUTPUT */
+.output-section{display:none;margin-bottom:20px}
+.output-section.active{display:block}
+.output-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.output-box h3{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.output-box h3 .badge{background:var(--green);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.feed-url{width:100%;padding:10px 12px;font-size:13px;font-family:'SF Mono',monospace;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);outline:none;word-break:break-all}
+.feed-url-row{display:flex;gap:8px;margin-bottom:12px}
+.feed-url-row input{flex:1}
+.instructions{font-size:13px;color:var(--text2);line-height:1.6}
+.instructions ol{padding-left:20px}
+.instructions li{margin-bottom:6px}
+.instructions code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent)}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px 20px;color:var(--text2)}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:0.4}
+.empty-text{font-size:14px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:500;z-index:100;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media(max-width:500px){
+  .input-row{flex-direction:column}
+  .config-row{flex-direction:column}
+  .config-row label{min-width:0;padding-top:0}
+  .actions{flex-direction:column}
+  .feed-url-row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>Pod</span>Tube</h1>
+  <p>Turn YouTube videos into a podcast feed</p>
+</header>
+
+<div class="container">
+
+  <!-- FEED CONFIG -->
+  <div class="feed-config">
+    <h3>Feed Settings</h3>
+    <div class="config-row">
+      <label>Title</label>
+      <input type="text" id="feedTitle" value="My Podcast" placeholder="Feed title">
+    </div>
+    <div class="config-row">
+      <label>Author</label>
+      <input type="text" id="feedAuthor" value="" placeholder="Author name">
+    </div>
+  </div>
+
+  <!-- ADD VIDEO -->
+  <div class="input-row">
+    <input type="text" id="urlInput" placeholder="Paste a YouTube URL..." autocomplete="off">
+    <button class="btn btn-accent" id="btnAdd">Add</button>
+  </div>
+
+  <!-- VIDEO LIST -->
+  <div id="videoList" class="video-list"></div>
+
+  <div id="emptyState" class="empty">
+    <div class="empty-icon">🎧</div>
+    <div class="empty-text">Add YouTube videos to build your podcast feed</div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions" id="actionsBar" style="display:none">
+    <button class="btn btn-accent" id="btnGenerate">Generate Feed</button>
+    <button class="btn btn-secondary" id="btnDownloadXML">Download RSS File</button>
+    <button class="btn btn-secondary" id="btnClear">Clear All</button>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output-section" id="outputSection">
+    <div class="output-box">
+      <h3>Your Podcast Feed <span class="badge">READY</span></h3>
+
+      <div class="feed-url-row">
+        <input type="text" class="feed-url" id="feedUrlField" readonly>
+        <button class="btn btn-secondary btn-small" id="btnCopyUrl">Copy</button>
+      </div>
+
+      <div class="instructions">
+        <p><strong>How to subscribe:</strong></p>
+        <ol>
+          <li>Copy the feed URL above</li>
+          <li>Open your podcast app (Apple Podcasts, Pocket Casts, Overcast, etc.)</li>
+          <li>Look for <code>Add by URL</code> or <code>Add RSS feed</code></li>
+          <li>Paste the URL and subscribe</li>
+        </ol>
+        <p style="margin-top:10px">Or <button class="btn btn-secondary btn-small" id="btnDownloadXML2">download the RSS file</button> and host it yourself.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════════ */
+let videos = []; /* { id, title, channel, thumb, duration } */
+let rssXML = '';
+
+/* Invidious instances for audio streams */
+const INVIDIOUS_INSTANCES = [
+  'inv.nadeko.net',
+  'invidious.nerdvpn.de',
+  'invidious.jing.rocks',
+  'yewtu.be',
+];
+let currentInstance = 0;
+
+function getInvidiousBase() {
+  return 'https://' + INVIDIOUS_INSTANCES[currentInstance % INVIDIOUS_INSTANCES.length];
+}
+
+/* ═══════════════════════════════════════════════════════════
+   URL PARSING
+   ═══════════════════════════════════════════════════════════ */
+function extractVideoId(url) {
+  url = url.trim();
+  /* youtu.be/ID */
+  let m = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (m) return m[1];
+  /* youtube.com/watch?v=ID */
+  m = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (m) return m[1];
+  /* youtube.com/embed/ID */
+  m = url.match(/embed\/([a-zA-Z0-9_-]{11})/);
+  if (m) return m[1];
+  /* youtube.com/shorts/ID */
+  m = url.match(/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (m) return m[1];
+  /* bare ID */
+  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
+  return null;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FETCH VIDEO METADATA
+   ═══════════════════════════════════════════════════════════ */
+async function fetchMetadata(videoId) {
+  /* try noembed first (CORS friendly, no auth needed) */
+  try {
+    const r = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+    const d = await r.json();
+    if (d.title) {
+      return {
+        id: videoId,
+        title: d.title,
+        channel: d.author_name || '',
+        thumb: d.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        duration: 0,
+      };
+    }
+  } catch (e) { /* fallback below */ }
+
+  /* fallback: use Invidious API */
+  for (let i = 0; i < INVIDIOUS_INSTANCES.length; i++) {
+    try {
+      const base = 'https://' + INVIDIOUS_INSTANCES[i];
+      const r = await fetch(`${base}/api/v1/videos/${videoId}?fields=title,author,videoThumbnails,lengthSeconds`, {
+        signal: AbortSignal.timeout(5000)
+      });
+      const d = await r.json();
+      if (d.title) {
+        currentInstance = i;
+        return {
+          id: videoId,
+          title: d.title,
+          channel: d.author || '',
+          thumb: (d.videoThumbnails && d.videoThumbnails[0] && d.videoThumbnails[0].url) || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+          duration: d.lengthSeconds || 0,
+        };
+      }
+    } catch (e) { continue; }
+  }
+
+  /* last resort: just use the ID */
+  return {
+    id: videoId,
+    title: 'YouTube Video ' + videoId,
+    channel: '',
+    thumb: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    duration: 0,
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UI
+   ═══════════════════════════════════════════════════════════ */
+const urlInput = document.getElementById('urlInput');
+const videoListEl = document.getElementById('videoList');
+const emptyState = document.getElementById('emptyState');
+const actionsBar = document.getElementById('actionsBar');
+
+function updateUI() {
+  emptyState.style.display = videos.length === 0 ? '' : 'none';
+  actionsBar.style.display = videos.length > 0 ? '' : 'none';
+  saveToHash();
+}
+
+function renderVideo(v, index) {
+  const div = document.createElement('div');
+  div.className = 'video-item';
+  div.innerHTML = `
+    <img class="video-thumb" src="${escapeAttr(v.thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">
+    <div class="video-info">
+      <div class="video-title">${escapeHTML(v.title)}</div>
+      <div class="video-channel">${escapeHTML(v.channel)}${v.duration ? ' · ' + formatDuration(v.duration) : ''}</div>
+    </div>
+    <button class="video-remove" title="Remove">&times;</button>
+  `;
+  div.querySelector('.video-remove').onclick = () => {
+    videos.splice(index, 1);
+    renderList();
+    updateUI();
+  };
+  return div;
+}
+
+function renderList() {
+  videoListEl.innerHTML = '';
+  videos.forEach((v, i) => videoListEl.appendChild(renderVideo(v, i)));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ADD VIDEO
+   ═══════════════════════════════════════════════════════════ */
+document.getElementById('btnAdd').onclick = addVideo;
+urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addVideo(); });
+
+async function addVideo() {
+  const raw = urlInput.value.trim();
+  if (!raw) return;
+
+  /* support pasting multiple URLs separated by newlines or spaces */
+  const urls = raw.split(/[\s,]+/).filter(Boolean);
+  urlInput.value = '';
+
+  for (const url of urls) {
+    const id = extractVideoId(url);
+    if (!id) { toast('Invalid YouTube URL'); continue; }
+    if (videos.some(v => v.id === id)) { toast('Already added'); continue; }
+
+    /* show loading */
+    const loadDiv = document.createElement('div');
+    loadDiv.className = 'video-item';
+    loadDiv.innerHTML = '<div class="video-loading">Loading...</div>';
+    videoListEl.appendChild(loadDiv);
+    emptyState.style.display = 'none';
+
+    try {
+      const meta = await fetchMetadata(id);
+      videos.push(meta);
+      loadDiv.remove();
+      renderList();
+      updateUI();
+    } catch (e) {
+      loadDiv.innerHTML = '<div class="video-error">Failed to load video</div>';
+      setTimeout(() => loadDiv.remove(), 2000);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GENERATE RSS FEED
+   ═══════════════════════════════════════════════════════════ */
+document.getElementById('btnGenerate').onclick = generateFeed;
+
+function generateFeed() {
+  if (videos.length === 0) return;
+
+  const feedTitle = document.getElementById('feedTitle').value.trim() || 'My Podcast';
+  const feedAuthor = document.getElementById('feedAuthor').value.trim() || 'PodTube';
+  const now = new Date().toUTCString();
+
+  /* pick an Invidious instance for audio URLs */
+  const base = getInvidiousBase();
+
+  let items = '';
+  videos.forEach((v, i) => {
+    /* itag 140 = m4a audio 128kbps — widely supported */
+    const audioUrl = `${base}/latest_version?id=${v.id}&amp;itag=140`;
+    const link = `https://www.youtube.com/watch?v=${v.id}`;
+    const pubDate = new Date(Date.now() - i * 86400000).toUTCString(); /* stagger dates */
+
+    items += `
+    <item>
+      <title>${escapeXML(v.title)}</title>
+      <link>${link}</link>
+      <guid isPermaLink="false">yt:${v.id}</guid>
+      <pubDate>${pubDate}</pubDate>
+      <dc:creator>${escapeXML(v.channel)}</dc:creator>
+      <description>${escapeXML(v.title)} by ${escapeXML(v.channel)}</description>
+      <enclosure url="${audioUrl}" type="audio/mp4" length="0"/>
+      <itunes:author>${escapeXML(v.channel)}</itunes:author>
+      <itunes:duration>${v.duration || 0}</itunes:duration>
+      <itunes:image href="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg"/>
+    </item>`;
+  });
+
+  rssXML = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+  xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+  xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeXML(feedTitle)}</title>
+    <description>Generated by PodTube</description>
+    <language>en</language>
+    <lastBuildDate>${now}</lastBuildDate>
+    <itunes:author>${escapeXML(feedAuthor)}</itunes:author>
+    <itunes:category text="Technology"/>
+    ${items}
+  </channel>
+</rss>`;
+
+  /* create a hosted version via data URI — some clients accept it */
+  const feedBlob = new Blob([rssXML], { type: 'application/rss+xml' });
+  const feedDataUrl = URL.createObjectURL(feedBlob);
+
+  /* show output */
+  const outputSection = document.getElementById('outputSection');
+  outputSection.classList.add('active');
+
+  /* generate the shareable page URL with hash */
+  saveToHash();
+  const pageUrl = window.location.href;
+  document.getElementById('feedUrlField').value = pageUrl;
+
+  toast('Feed generated!');
+  outputSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DOWNLOAD / COPY
+   ═══════════════════════════════════════════════════════════ */
+function downloadXML() {
+  if (!rssXML) generateFeed();
+  if (!rssXML) return;
+  const blob = new Blob([rssXML], { type: 'application/rss+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (document.getElementById('feedTitle').value.trim() || 'podcast').replace(/\s+/g, '_') + '.xml';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('RSS file downloaded!');
+}
+
+document.getElementById('btnDownloadXML').onclick = downloadXML;
+document.getElementById('btnDownloadXML2').onclick = downloadXML;
+
+document.getElementById('btnCopyUrl').onclick = () => {
+  const field = document.getElementById('feedUrlField');
+  navigator.clipboard.writeText(field.value).then(() => toast('URL copied!'));
+};
+
+document.getElementById('btnClear').onclick = () => {
+  videos = [];
+  rssXML = '';
+  renderList();
+  updateUI();
+  document.getElementById('outputSection').classList.remove('active');
+  window.location.hash = '';
+};
+
+/* ═══════════════════════════════════════════════════════════
+   URL HASH PERSISTENCE
+   ═══════════════════════════════════════════════════════════ */
+function saveToHash() {
+  if (videos.length === 0) { window.location.hash = ''; return; }
+  const data = {
+    t: document.getElementById('feedTitle').value.trim(),
+    a: document.getElementById('feedAuthor').value.trim(),
+    v: videos.map(v => v.id),
+  };
+  window.location.hash = btoa(JSON.stringify(data));
+}
+
+async function loadFromHash() {
+  const hash = window.location.hash.slice(1);
+  if (!hash) return;
+  try {
+    const data = JSON.parse(atob(hash));
+    if (data.t) document.getElementById('feedTitle').value = data.t;
+    if (data.a) document.getElementById('feedAuthor').value = data.a;
+    if (data.v && data.v.length) {
+      for (const id of data.v) {
+        if (videos.some(v => v.id === id)) continue;
+        const loadDiv = document.createElement('div');
+        loadDiv.className = 'video-item';
+        loadDiv.innerHTML = '<div class="video-loading">Loading...</div>';
+        videoListEl.appendChild(loadDiv);
+        emptyState.style.display = 'none';
+        try {
+          const meta = await fetchMetadata(id);
+          videos.push(meta);
+          loadDiv.remove();
+        } catch (e) { loadDiv.remove(); }
+      }
+      renderList();
+      updateUI();
+    }
+  } catch (e) { /* invalid hash, ignore */ }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RSS SERVE MODE — if ?rss is in URL, serve raw XML
+   ═══════════════════════════════════════════════════════════ */
+async function checkRSSMode() {
+  if (!window.location.search.includes('rss')) return false;
+  const hash = window.location.hash.slice(1);
+  if (!hash) return false;
+
+  try {
+    const data = JSON.parse(atob(hash));
+    /* load videos and generate feed */
+    for (const id of (data.v || [])) {
+      const meta = await fetchMetadata(id);
+      videos.push(meta);
+    }
+    if (data.t) document.getElementById('feedTitle').value = data.t;
+    if (data.a) document.getElementById('feedAuthor').value = data.a;
+    generateFeed();
+
+    /* replace page with raw XML */
+    document.open('text/xml');
+    document.write(rssXML);
+    document.close();
+    return true;
+  } catch (e) { return false; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════ */
+function escapeHTML(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escapeAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+function escapeXML(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&apos;').replace(/"/g,'&quot;'); }
+function formatDuration(s) {
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════ */
+(async () => {
+  const isRSS = await checkRSSMode();
+  if (!isRSS) loadFromHash();
+})();
+</script>
+</body>
+</html>

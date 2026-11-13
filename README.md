@@ -9,6 +9,7 @@ A place where I just put code of stuff I made with AI
 - [GlitchDrums](GlitchDrums/) — IDM/glitch drum machine: upload samples, per-step stutter, pitch, reverse, slice, bitcrusher, WAV export. [▶ Run it](https://antoinefortin.github.io/Aideas/GlitchDrums/)
 - [MidiSketch](MidiSketch/) — Theory-driven MIDI arranger: pick a scale, build chord progressions, add bass and melody, preview and export MIDI. [▶ Run it](https://antoinefortin.github.io/Aideas/MidiSketch/)
 - [TorrentDrop](TorrentDrop/) — Paste a magnet link or drop a .torrent, get direct download links. Pure browser, no server. [▶ Run it](https://antoinefortin.github.io/Aideas/TorrentDrop/)
+- [PodTube](PodTube/) — Turn YouTube videos into a podcast RSS feed. Add videos, generate a feed URL, subscribe in any podcast app. No server. [▶ Run it](https://antoinefortin.github.io/Aideas/PodTube/)
 - [SignPDF](SignPDF/) — Free PDF signer: open a PDF, draw or type your signature, add text/dates, download the signed PDF. Mobile-first, no server. [▶ Run it](https://antoinefortin.github.io/Aideas/SignPDF/)
 - [SilenceCut](Silencer/) — Remove silence from audio recordings directly in your browser. No uploads, no server. [▶ Run it](https://antoinefortin.github.io/Aideas/Silencer/)
 - [AudioDock](AudioDock/) — Windows C#/WPF app for batch-downloading YouTube audio as MP3 via yt-dlp and FFmpeg.
