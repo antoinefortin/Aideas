@@ -108,6 +108,7 @@ let moving = false;
 let hoveredObj = null;
 let muted = false;
 let articleOpen = false;
+let started = false;
 const interactables = [];
 const clock = new THREE.Clock();
 const keys = {};
@@ -648,6 +649,7 @@ function onPointerMove(e) {
 }
 
 function onPointerDown(e) {
+  if (!started) return;
   if (articleOpen) return;
   if (e.button !== 0) return;
 
@@ -803,22 +805,29 @@ function animate() {
    LOADING
    ═══════════════════════════════════════════════════════════ */
 let loadProgress = 0;
+let loadDone = false;
 const enterMsg = document.getElementById('enterMsg');
 const loadInterval = setInterval(() => {
   loadProgress = Math.min(100, loadProgress + 2 + Math.random() * 5);
   document.getElementById('loadBar').style.width = loadProgress + '%';
   if (loadProgress >= 100) {
     clearInterval(loadInterval);
-    enterMsg.textContent = '>>> CLICK ANYWHERE TO ENTER THE THEATRE <<<';
+    loadDone = true;
+    enterMsg.textContent = '>>> CLICK ANYWHERE TO ENTER <<<';
     enterMsg.style.color = '#c9a84c';
-    enterMsg.style.cursor = 'pointer';
-    /* listen on the whole loader overlay */
-    document.getElementById('loader').style.cursor = 'pointer';
-    document.getElementById('loader').addEventListener('click', startExperience, { once: true });
   }
 }, 100);
 
+/* single global click handler for the start — catches everything */
+document.addEventListener('click', function onFirstClick() {
+  if (!loadDone) return; /* wait for bar to fill */
+  document.removeEventListener('click', onFirstClick);
+  startExperience();
+});
+
 function startExperience() {
+  if (started) return;
+  started = true;
   document.getElementById('loader').classList.add('done');
   /* create YouTube players NOW inside user gesture so browsers allow autoplay */
   initYouTubePlayers();
