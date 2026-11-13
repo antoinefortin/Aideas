@@ -26,3 +26,22 @@ A place where I just put code of stuff I made with AI
   - [Footfall](threejs-environment-experiments/footfall/) — vertex-displaced footprints in snow, sand or mud; scoops, packs and throws snowballs. [▶ Run it](https://antoinefortin.github.io/Aideas/threejs-environment-experiments/footfall/)
   - [Wake](threejs-environment-experiments/wake/) — wading through GPU-simulated water (bow wave, wake, stones, rain) with 12 water presets. [▶ Run it](https://antoinefortin.github.io/Aideas/threejs-environment-experiments/wake/)
   - [Splinter](threejs-environment-experiments/splinter/) — hyper-real PBR pump shotgun firing at a pine board: see-through pellet holes with end grain and exit tear-out, 3 ammo types. [▶ Run it](https://antoinefortin.github.io/Aideas/threejs-environment-experiments/splinter/)
+
+---
+
+## The Bill
+
+Every line of code in this repo was vibed into existence by AI. Here's what it cost the planet so you could sign a PDF in your browser and tune a guitar to FACGCE.
+
+| Metric | Estimate | Equivalent |
+|---|---|---|
+| AI queries | ~3,000+ prompts | One mass hallucination |
+| Energy consumed | ~9 kWh | Mass-charging 800 iPhones |
+| CO2 emitted | ~4 kg | Driving 16 km in a Honda Civic |
+| Water used for cooling | ~1.5 L | Not even a large Starbucks order |
+| Trees needed to offset | 0.02 trees/year | A single leaf is overqualified |
+| Equivalent flights | 0.008 transatlantic flights | You couldn't taxi to the runway |
+
+For context, you mass-watching Netflix tonight will mass-consume more energy than everything above combined. But sure, AI is the problem.
+
+*None of us are getting out of this alive. Might as well mass-ship side projects.*
