@@ -11,7 +11,7 @@ A place where I just put code of stuff I made with AI
 - [SilenceCut](Silencer/) — Remove silence from audio recordings directly in your browser. No uploads, no server. [▶ Run it](https://antoinefortin.github.io/Aideas/Silencer/)
 - [AudioDock](AudioDock/) — Windows C#/WPF app for batch-downloading YouTube audio as MP3 via yt-dlp and FFmpeg.
 - [Tabtone](tabtone/) — One-click Chrome tab audio recorder with local MP3 encoding and automatic filenames.
-- [Tabflow](tabflow/) — Égaliseur par onglet, volume booster et effets audio locaux pour Chrome.
+- [Tabflow](tabflow/) — Per-tab equalizer, volume booster and local audio effects for Chrome.
 - [three.js environment experiments](threejs-environment-experiments/) — interactive three.js scenes where something leaves a trace in its environment:
   - [Footfall](threejs-environment-experiments/footfall/) — vertex-displaced footprints in snow, sand or mud; scoops, packs and throws snowballs. [▶ Run it](https://antoinefortin.github.io/Aideas/threejs-environment-experiments/footfall/)
   - [Wake](threejs-environment-experiments/wake/) — wading through GPU-simulated water (bow wave, wake, stones, rain) with 12 water presets. [▶ Run it](https://antoinefortin.github.io/Aideas/threejs-environment-experiments/wake/)
