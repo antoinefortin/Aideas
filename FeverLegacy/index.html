@@ -717,7 +717,9 @@ function onPointerDown(e) {
       THREE.MathUtils.clamp(pt.z, -8, 18)
     );
     moving = true;
+    console.log('[FeverLegacy] MOVING to', targetPos.x.toFixed(2), targetPos.z.toFixed(2));
   } else if (ud.type === 'article') {
+    console.log('[FeverLegacy] OPEN article', ud.key);
     openArticle(ud.key);
   }
 }
