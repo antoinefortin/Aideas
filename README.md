@@ -3,6 +3,7 @@ A place where I just put code of stuff I made with AI
 
 ## Projects
 
+- [FeverLegacy](FeverLegacy/) — Immersive 3D exploration of Panic! At The Disco's *A Fever You Can't Sweat Out* (2005) and its cultural impact. Three.js. [▶ Run it](https://antoinefortin.github.io/Aideas/FeverLegacy/)
 - [GlitchDrums](GlitchDrums/) — IDM/glitch drum machine: upload samples, per-step stutter, pitch, reverse, slice, bitcrusher, WAV export. [▶ Run it](https://antoinefortin.github.io/Aideas/GlitchDrums/)
 - [MidiSketch](MidiSketch/) — Theory-driven MIDI arranger: pick a scale, build chord progressions, add bass and melody, preview and export MIDI. [▶ Run it](https://antoinefortin.github.io/Aideas/MidiSketch/)
 - [TorrentDrop](TorrentDrop/) — Paste a magnet link or drop a .torrent, get direct download links. Pure browser, no server. [▶ Run it](https://antoinefortin.github.io/Aideas/TorrentDrop/)
