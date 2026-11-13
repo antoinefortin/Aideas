@@ -1,0 +1,988 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3D Math Viz — Visual Reference for 3D Rendering</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0a;--surface:#141414;--surface2:#1c1c1c;--border:#2a2a2a;--accent:#6c5ce7;--accent2:#a29bfe;--red:#ff6b6b;--green:#51cf66;--blue:#339af0;--yellow:#fcc419;--cyan:#22b8cf;--orange:#ff922b;--text:#eee;--text2:#777;--mono:'JetBrains Mono',monospace}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:16px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+nav h1{font-size:15px;font-weight:800;white-space:nowrap;padding:14px 0}
+nav h1 span{color:var(--accent)}
+.nav-links{display:flex;gap:2px}
+.nav-link{padding:14px 12px;font-size:12px;font-weight:600;color:var(--text2);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.15s}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{color:var(--accent2);border-bottom-color:var(--accent)}
+
+/* SECTIONS */
+.section{padding:32px 20px;max-width:1100px;margin:0 auto;display:none}
+.section.active{display:block}
+.section-title{font-size:22px;font-weight:800;margin-bottom:6px;letter-spacing:-0.5px}
+.section-sub{font-size:14px;color:var(--text2);margin-bottom:24px}
+
+/* CARDS */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color 0.15s}
+.card:hover{border-color:var(--accent)}
+.card-canvas{width:100%;height:240px;display:block;cursor:grab;background:#0d0d0d}
+.card-canvas:active{cursor:grabbing}
+.card-body{padding:16px}
+.card-title{font-size:15px;font-weight:700;margin-bottom:6px}
+.card-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px}
+.card-code{font-family:var(--mono);font-size:11px;background:var(--surface2);padding:10px;border-radius:6px;color:var(--accent2);line-height:1.6;overflow-x:auto;white-space:pre}
+.card-controls{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.slider-row{display:flex;align-items:center;gap:8px;width:100%}
+.slider-row label{font-size:11px;color:var(--text2);min-width:50px;font-family:var(--mono)}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent)}
+.slider-row .val{font-size:11px;font-family:var(--mono);color:var(--accent2);min-width:40px;text-align:right}
+
+/* MATRIX DISPLAY */
+.matrix-display{display:inline-grid;gap:2px;font-family:var(--mono);font-size:12px;background:var(--surface2);padding:8px;border-radius:6px;margin:6px 0}
+.matrix-display.m3{grid-template-columns:repeat(3,1fr)}
+.matrix-display.m4{grid-template-columns:repeat(4,1fr)}
+.matrix-display span{padding:3px 6px;text-align:right;min-width:48px;border-radius:3px}
+.matrix-display span.highlight{background:rgba(108,92,231,0.2);color:var(--accent2)}
+
+/* LEGEND */
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+
+/* FULLWIDTH CARD */
+.card-full{grid-column:1/-1}
+.card-full .card-canvas{height:300px}
+
+/* TABS inside card */
+.card-tabs{display:flex;gap:2px;margin-bottom:10px}
+.card-tab{padding:6px 12px;font-size:11px;font-weight:600;border-radius:6px;cursor:pointer;background:var(--surface2);color:var(--text2);border:none;font-family:inherit;transition:all 0.15s}
+.card-tab.active{background:var(--accent);color:#fff}
+
+@media(max-width:700px){
+  .card-grid{grid-template-columns:1fr}
+  nav{gap:8px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <h1><span>3D</span>Math</h1>
+  <div class="nav-links">
+    <a class="nav-link active" href="#vectors" data-section="vectors">Vectors</a>
+    <a class="nav-link" href="#matrices" data-section="matrices">Matrices</a>
+    <a class="nav-link" href="#transforms" data-section="transforms">Transforms</a>
+    <a class="nav-link" href="#projections" data-section="projections">Projections</a>
+    <a class="nav-link" href="#quaternions" data-section="quaternions">Quaternions</a>
+    <a class="nav-link" href="#spaces" data-section="spaces">Coord Spaces</a>
+  </div>
+</nav>
+
+<!-- Sections are built dynamically -->
+<div id="content"></div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════
+   MINI 3D RENDERER (no dependencies)
+   ═══════════════════════════════════════════════════════════ */
+class Scene3D {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.w = 0; this.h = 0;
+    this.camDist = 5;
+    this.rotX = -0.4; this.rotY = 0.6;
+    this.dragging = false;
+    this.lastMouse = { x: 0, y: 0 };
+    this.items = []; /* {type, ...} */
+    this.autoRotate = false;
+    this.time = 0;
+    this.onFrame = null;
+
+    this.resize();
+    this.bindEvents();
+    this.animate();
+  }
+
+  resize() {
+    const r = this.canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio, 2);
+    this.w = r.width; this.h = r.height;
+    this.canvas.width = r.width * dpr;
+    this.canvas.height = r.height * dpr;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  bindEvents() {
+    this.canvas.addEventListener('pointerdown', (e) => {
+      this.dragging = true;
+      this.lastMouse = { x: e.clientX, y: e.clientY };
+      this.canvas.setPointerCapture(e.pointerId);
+    });
+    this.canvas.addEventListener('pointermove', (e) => {
+      if (!this.dragging) return;
+      const dx = e.clientX - this.lastMouse.x;
+      const dy = e.clientY - this.lastMouse.y;
+      this.rotY += dx * 0.008;
+      this.rotX += dy * 0.008;
+      this.rotX = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.rotX));
+      this.lastMouse = { x: e.clientX, y: e.clientY };
+    });
+    this.canvas.addEventListener('pointerup', () => this.dragging = false);
+  }
+
+  project(x, y, z) {
+    /* rotate around Y then X */
+    const cy = Math.cos(this.rotY), sy = Math.sin(this.rotY);
+    const cx = Math.cos(this.rotX), sx = Math.sin(this.rotX);
+    let x1 = x * cy + z * sy;
+    let z1 = -x * sy + z * cy;
+    let y1 = y * cx - z1 * sx;
+    let z2 = y * sx + z1 * cx;
+
+    const scale = this.w * 0.15 * this.camDist / (this.camDist + z2 + 5);
+    return {
+      sx: this.w / 2 + x1 * scale,
+      sy: this.h / 2 - y1 * scale,
+      depth: z2
+    };
+  }
+
+  drawGrid(size, divisions, color) {
+    const ctx = this.ctx;
+    ctx.strokeStyle = color || 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 0.5;
+    const step = size / divisions;
+    for (let i = -divisions / 2; i <= divisions / 2; i++) {
+      const v = i * step;
+      this.drawLine3D(v, 0, -size/2, v, 0, size/2, ctx.strokeStyle, 0.5);
+      this.drawLine3D(-size/2, 0, v, size/2, 0, v, ctx.strokeStyle, 0.5);
+    }
+  }
+
+  drawAxes(len, labels) {
+    len = len || 2;
+    this.drawArrow3D(0,0,0, len,0,0, '#ff6b6b', labels ? 'X' : null);
+    this.drawArrow3D(0,0,0, 0,len,0, '#51cf66', labels ? 'Y' : null);
+    this.drawArrow3D(0,0,0, 0,0,len, '#339af0', labels ? 'Z' : null);
+  }
+
+  drawLine3D(x1,y1,z1, x2,y2,z2, color, width) {
+    const a = this.project(x1,y1,z1), b = this.project(x2,y2,z2);
+    const ctx = this.ctx;
+    ctx.beginPath();
+    ctx.moveTo(a.sx, a.sy);
+    ctx.lineTo(b.sx, b.sy);
+    ctx.strokeStyle = color || '#fff';
+    ctx.lineWidth = width || 1.5;
+    ctx.stroke();
+  }
+
+  drawArrow3D(x1,y1,z1, x2,y2,z2, color, label) {
+    this.drawLine3D(x1,y1,z1, x2,y2,z2, color, 2);
+    const p = this.project(x2,y2,z2);
+    const ctx = this.ctx;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy, 4, 0, Math.PI*2);
+    ctx.fill();
+    if (label) {
+      ctx.font = '600 12px Inter,sans-serif';
+      ctx.fillStyle = color;
+      ctx.fillText(label, p.sx + 8, p.sy + 4);
+    }
+  }
+
+  drawPoint3D(x,y,z, color, radius, label) {
+    const p = this.project(x,y,z);
+    const ctx = this.ctx;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy, radius || 4, 0, Math.PI*2);
+    ctx.fill();
+    if (label) {
+      ctx.font = '600 11px JetBrains Mono,monospace';
+      ctx.fillText(label, p.sx + 8, p.sy - 6);
+    }
+  }
+
+  drawVector(ox,oy,oz, vx,vy,vz, color, label) {
+    this.drawArrow3D(ox,oy,oz, ox+vx,oy+vy,oz+vz, color, label);
+  }
+
+  drawDashedLine3D(x1,y1,z1, x2,y2,z2, color) {
+    const a = this.project(x1,y1,z1), b = this.project(x2,y2,z2);
+    const ctx = this.ctx;
+    ctx.beginPath();
+    ctx.setLineDash([4,4]);
+    ctx.moveTo(a.sx, a.sy);
+    ctx.lineTo(b.sx, b.sy);
+    ctx.strokeStyle = color || 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  drawPlane(points, color) {
+    const ctx = this.ctx;
+    const proj = points.map(p => this.project(p[0], p[1], p[2]));
+    ctx.beginPath();
+    ctx.moveTo(proj[0].sx, proj[0].sy);
+    for (let i = 1; i < proj.length; i++) ctx.lineTo(proj[i].sx, proj[i].sy);
+    ctx.closePath();
+    ctx.fillStyle = color || 'rgba(108,92,231,0.1)';
+    ctx.fill();
+    ctx.strokeStyle = color ? color.replace(/[\d.]+\)$/, '0.5)') : 'rgba(108,92,231,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  drawArc3D(cx,cy,cz, radius, startAngle, endAngle, axis, color) {
+    const ctx = this.ctx;
+    ctx.beginPath();
+    const steps = 32;
+    for (let i = 0; i <= steps; i++) {
+      const a = startAngle + (endAngle - startAngle) * i / steps;
+      let x, y, z;
+      if (axis === 'y') { x = cx + Math.cos(a)*radius; y = cy; z = cz + Math.sin(a)*radius; }
+      else if (axis === 'x') { x = cx; y = cy + Math.cos(a)*radius; z = cz + Math.sin(a)*radius; }
+      else { x = cx + Math.cos(a)*radius; y = cy + Math.sin(a)*radius; z = cz; }
+      const p = this.project(x,y,z);
+      if (i === 0) ctx.moveTo(p.sx, p.sy); else ctx.lineTo(p.sx, p.sy);
+    }
+    ctx.strokeStyle = color || 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  drawBox(cx,cy,cz, sx,sy,sz, color) {
+    const hx=sx/2, hy=sy/2, hz=sz/2;
+    const verts = [
+      [cx-hx,cy-hy,cz-hz],[cx+hx,cy-hy,cz-hz],[cx+hx,cy+hy,cz-hz],[cx-hx,cy+hy,cz-hz],
+      [cx-hx,cy-hy,cz+hz],[cx+hx,cy-hy,cz+hz],[cx+hx,cy+hy,cz+hz],[cx-hx,cy+hy,cz+hz]
+    ];
+    const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+    edges.forEach(([a,b]) => {
+      this.drawLine3D(verts[a][0],verts[a][1],verts[a][2], verts[b][0],verts[b][1],verts[b][2], color || 'rgba(255,255,255,0.3)', 1);
+    });
+  }
+
+  clear() {
+    this.ctx.clearRect(0, 0, this.w, this.h);
+  }
+
+  animate() {
+    requestAnimationFrame(() => this.animate());
+    this.time += 0.016;
+    if (this.autoRotate && !this.dragging) this.rotY += 0.003;
+    this.clear();
+    if (this.onFrame) this.onFrame(this, this.time);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION DEFINITIONS
+   ═══════════════════════════════════════════════════════════ */
+const SECTIONS = {
+
+  /* ── VECTORS ──────────────────────────────────────── */
+  vectors: {
+    title: 'Vectors',
+    sub: 'Direction + magnitude. The building block of 3D math.',
+    cards: [
+      {
+        title: 'Vector Components',
+        desc: 'A vector has X, Y, Z components. It represents a direction and magnitude from the origin.',
+        code: 'vec3 v = vec3(x, y, z);\nfloat len = length(v);  // √(x²+y²+z²)',
+        sliders: [
+          { id: 'vx', label: 'X', min: -2, max: 2, step: 0.1, val: 1.5 },
+          { id: 'vy', label: 'Y', min: -2, max: 2, step: 0.1, val: 1.0 },
+          { id: 'vz', label: 'Z', min: -2, max: 2, step: 0.1, val: 0.5 },
+        ],
+        draw(s, t, vals) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2, true);
+          const { vx, vy, vz } = vals;
+          s.drawVector(0,0,0, vx,vy,vz, '#ff922b', 'v');
+          /* projections on axes */
+          s.drawDashedLine3D(vx,0,0, vx,vy,vz, 'rgba(255,146,43,0.2)');
+          s.drawDashedLine3D(0,vy,0, vx,vy,vz, 'rgba(255,146,43,0.2)');
+          s.drawDashedLine3D(0,0,vz, vx,vy,vz, 'rgba(255,146,43,0.2)');
+          s.drawDashedLine3D(vx,0,0, vx,0,vz, 'rgba(255,146,43,0.15)');
+          s.drawDashedLine3D(0,0,vz, vx,0,vz, 'rgba(255,146,43,0.15)');
+          s.drawDashedLine3D(vx,0,vz, vx,vy,vz, 'rgba(255,146,43,0.15)');
+          const len = Math.sqrt(vx*vx+vy*vy+vz*vz);
+          s.ctx.font = '600 12px JetBrains Mono';
+          s.ctx.fillStyle = '#ff922b';
+          s.ctx.fillText(`|v| = ${len.toFixed(2)}`, 10, s.h - 10);
+        }
+      },
+      {
+        title: 'Addition & Subtraction',
+        desc: 'Adding vectors: place them head-to-tail. The result goes from the first tail to the last head.',
+        code: 'vec3 c = a + b;  // component-wise\nvec3 d = a - b;  // a + (-b)',
+        sliders: [
+          { id: 'ax', label: 'A.x', min: -2, max: 2, step: 0.1, val: 1.5 },
+          { id: 'ay', label: 'A.y', min: -2, max: 2, step: 0.1, val: 0.5 },
+          { id: 'bx', label: 'B.x', min: -2, max: 2, step: 0.1, val: 0.5 },
+          { id: 'by', label: 'B.y', min: -2, max: 2, step: 0.1, val: 1.5 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2);
+          s.drawVector(0,0,0, v.ax,v.ay,0, '#ff6b6b', 'A');
+          s.drawVector(v.ax,v.ay,0, v.bx,v.by,0, '#339af0', 'B');
+          s.drawVector(0,0,0, v.ax+v.bx,v.ay+v.by,0, '#51cf66', 'A+B');
+          s.drawDashedLine3D(v.bx,v.by,0, v.ax+v.bx,v.ay+v.by,0, 'rgba(255,107,107,0.2)');
+        }
+      },
+      {
+        title: 'Dot Product',
+        desc: 'Measures how much two vectors point in the same direction. Returns a scalar. 1 = same, 0 = perpendicular, -1 = opposite.',
+        code: 'float d = dot(a, b);\n// = a.x*b.x + a.y*b.y + a.z*b.z\n// = |a|*|b|*cos(θ)',
+        sliders: [
+          { id: 'angle', label: 'θ', min: 0, max: 360, step: 1, val: 45 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2);
+          const a = v.angle * Math.PI / 180;
+          const ax = 1.5, ay = 0;
+          const bx = 1.5 * Math.cos(a), by = 1.5 * Math.sin(a);
+          s.drawVector(0,0,0, ax,ay,0, '#ff6b6b', 'A');
+          s.drawVector(0,0,0, bx,by,0, '#339af0', 'B');
+          s.drawArc3D(0,0,0, 0.5, 0, a, 'z', '#fcc419');
+          const dot = ax*bx + ay*by;
+          const cos = dot / (1.5 * 1.5);
+          s.ctx.font = '600 12px JetBrains Mono';
+          s.ctx.fillStyle = '#fcc419';
+          s.ctx.fillText(`dot = ${dot.toFixed(2)}  cos(θ) = ${cos.toFixed(2)}`, 10, s.h - 10);
+        }
+      },
+      {
+        title: 'Cross Product',
+        desc: 'Returns a vector perpendicular to both inputs. Magnitude = area of the parallelogram they form.',
+        code: 'vec3 c = cross(a, b);\n// c is ⊥ to both a and b\n// |c| = |a|*|b|*sin(θ)',
+        sliders: [
+          { id: 'angle', label: 'θ', min: 0, max: 360, step: 1, val: 90 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2);
+          const a = v.angle * Math.PI / 180;
+          const ax = 1.5, ay = 0, az = 0;
+          const bx = 1.5*Math.cos(a), by = 0, bz = 1.5*Math.sin(a);
+          /* cross product: a × b */
+          const cx = ay*bz - az*by, cy = az*bx - ax*bz, cz = ax*by - ay*bx;
+          s.drawVector(0,0,0, ax,ay,az, '#ff6b6b', 'A');
+          s.drawVector(0,0,0, bx,by,bz, '#339af0', 'B');
+          s.drawVector(0,0,0, cx,cy,cz, '#51cf66', 'A×B');
+          /* parallelogram */
+          s.drawPlane([[0,0,0],[ax,ay,az],[ax+bx,ay+by,az+bz],[bx,by,bz]], 'rgba(252,196,25,0.1)');
+          s.ctx.font = '600 12px JetBrains Mono';
+          s.ctx.fillStyle = '#51cf66';
+          s.ctx.fillText(`cross = (${cx.toFixed(1)}, ${cy.toFixed(1)}, ${cz.toFixed(1)})`, 10, s.h - 10);
+        }
+      },
+      {
+        title: 'Normalize',
+        desc: 'Makes a vector length 1 (unit vector). Keeps direction, removes magnitude. Essential for directions and normals.',
+        code: 'vec3 n = normalize(v);\n// = v / length(v)\n// length(n) == 1.0',
+        sliders: [
+          { id: 'vx', label: 'X', min: -3, max: 3, step: 0.1, val: 2.0 },
+          { id: 'vy', label: 'Y', min: -3, max: 3, step: 0.1, val: 1.5 },
+          { id: 'vz', label: 'Z', min: -3, max: 3, step: 0.1, val: 1.0 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2);
+          const len = Math.sqrt(v.vx*v.vx+v.vy*v.vy+v.vz*v.vz) || 0.001;
+          s.drawVector(0,0,0, v.vx,v.vy,v.vz, 'rgba(255,146,43,0.3)', '');
+          s.drawVector(0,0,0, v.vx/len,v.vy/len,v.vz/len, '#ff922b', 'n̂');
+          /* unit sphere hint */
+          s.drawArc3D(0,0,0, 1, 0, Math.PI*2, 'z', 'rgba(255,255,255,0.06)');
+          s.drawArc3D(0,0,0, 1, 0, Math.PI*2, 'y', 'rgba(255,255,255,0.06)');
+          s.ctx.font = '600 12px JetBrains Mono';
+          s.ctx.fillStyle = '#ff922b';
+          s.ctx.fillText(`|v| = ${len.toFixed(2)} → |n̂| = 1.00`, 10, s.h - 10);
+        }
+      },
+      {
+        title: 'Reflect',
+        desc: 'Reflect a vector off a surface with a given normal. Used in lighting (specular) and ray tracing.',
+        code: 'vec3 r = reflect(v, n);\n// = v - 2*dot(v,n)*n',
+        sliders: [
+          { id: 'angle', label: 'angle', min: -80, max: 80, step: 1, val: -40 },
+          { id: 'nAngle', label: 'normal', min: -45, max: 45, step: 1, val: 0 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          const na = v.nAngle * Math.PI / 180;
+          const nx = Math.sin(na), ny = Math.cos(na);
+          const va = v.angle * Math.PI / 180;
+          const vx = Math.sin(va) * 1.5, vy = -Math.cos(va) * 1.5;
+          /* reflect */
+          const d = vx*nx + vy*ny;
+          const rx = vx - 2*d*nx, ry = vy - 2*d*ny;
+          /* draw surface line */
+          s.drawLine3D(-2*ny,2*nx,0, 2*ny,-2*nx,0, 'rgba(255,255,255,0.2)', 2);
+          s.drawVector(0,0,0, nx*1.2,ny*1.2,0, '#fcc419', 'N');
+          s.drawVector(0,0,0, vx,vy,0, '#ff6b6b', 'V');
+          s.drawVector(0,0,0, rx,ry,0, '#51cf66', 'R');
+          s.drawArc3D(0,0,0, 0.4, Math.atan2(nx,ny), Math.atan2(vx,vy)+Math.PI, 'z', 'rgba(255,107,107,0.3)');
+        }
+      },
+    ]
+  },
+
+  /* ── MATRICES ─────────────────────────────────────── */
+  matrices: {
+    title: 'Matrices',
+    sub: 'Transform points and vectors. The language of 3D transformations.',
+    cards: [
+      {
+        title: 'Identity Matrix',
+        desc: 'Does nothing. Multiplying by identity returns the same vector. The "1" of matrices.',
+        code: 'mat4 I = mat4(1.0);\n// diagonal is 1, rest is 0\n// v * I = v',
+        draw(s, t) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2, true);
+          /* draw unit cube */
+          s.drawBox(0.5, 0.5, 0.5, 1, 1, 1, 'rgba(108,92,231,0.3)');
+          s.drawPoint3D(1,0,0,'#ff6b6b',3,'(1,0,0)');
+          s.drawPoint3D(0,1,0,'#51cf66',3,'(0,1,0)');
+          s.drawPoint3D(0,0,1,'#339af0',3,'(0,0,1)');
+          s.ctx.font = '600 12px JetBrains Mono';
+          s.ctx.fillStyle = 'rgba(255,255,255,0.4)';
+          s.ctx.fillText('I × v = v (no change)', 10, s.h - 10);
+        }
+      },
+      {
+        title: 'Matrix × Vector',
+        desc: 'Each row of the matrix dots with the vector. The result is a new vector — the transformed point.',
+        code: '| a b c |   | x |   | ax+by+cz |\n| d e f | × | y | = | dx+ey+fz |\n| g h i |   | z |   | gx+hy+iz |',
+        sliders: [
+          { id: 'px', label: 'P.x', min: -2, max: 2, step: 0.1, val: 1.0 },
+          { id: 'py', label: 'P.y', min: -2, max: 2, step: 0.1, val: 0.5 },
+          { id: 'scale', label: 'scale', min: 0.2, max: 3, step: 0.1, val: 1.5 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2, true);
+          s.drawPoint3D(v.px, v.py, 0, 'rgba(255,146,43,0.4)', 5, 'original');
+          s.drawPoint3D(v.px*v.scale, v.py*v.scale, 0, '#ff922b', 6, 'scaled');
+          s.drawDashedLine3D(v.px,v.py,0, v.px*v.scale,v.py*v.scale,0, 'rgba(255,146,43,0.3)');
+        }
+      },
+    ]
+  },
+
+  /* ── TRANSFORMS ───────────────────────────────────── */
+  transforms: {
+    title: 'Transforms',
+    sub: 'Scale, rotate, translate — the three fundamental 3D operations.',
+    cards: [
+      {
+        title: 'Scale',
+        desc: 'Multiply each axis independently. Uniform scale (same on all) keeps proportions.',
+        code: 'mat4 S = mat4(\n  sx, 0,  0, 0,\n  0, sy,  0, 0,\n  0,  0, sz, 0,\n  0,  0,  0, 1);',
+        sliders: [
+          { id: 'sx', label: 'Sx', min: 0.1, max: 3, step: 0.1, val: 1.0 },
+          { id: 'sy', label: 'Sy', min: 0.1, max: 3, step: 0.1, val: 1.0 },
+          { id: 'sz', label: 'Sz', min: 0.1, max: 3, step: 0.1, val: 1.0 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2, true);
+          s.drawBox(0,0,0, 1,1,1, 'rgba(255,255,255,0.15)');
+          s.drawBox(0,0,0, v.sx,v.sy,v.sz, '#6c5ce7');
+          s.ctx.font = '600 11px JetBrains Mono';
+          s.ctx.fillStyle = '#6c5ce7';
+          s.ctx.fillText(`Scale(${v.sx.toFixed(1)}, ${v.sy.toFixed(1)}, ${v.sz.toFixed(1)})`, 10, s.h - 10);
+        }
+      },
+      {
+        title: 'Rotation (Y axis)',
+        desc: 'Rotate around an axis. Here: Y axis. X and Z change, Y stays the same.',
+        code: 'mat4 Ry = mat4(\n cos, 0, sin, 0,\n   0, 1,   0, 0,\n-sin, 0, cos, 0,\n   0, 0,   0, 1);',
+        sliders: [
+          { id: 'angle', label: 'deg', min: 0, max: 360, step: 1, val: 0 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2, true);
+          const a = v.angle * Math.PI / 180;
+          const c = Math.cos(a), sn = Math.sin(a);
+          /* original box corners */
+          const corners = [[-0.5,-0.5,-0.5],[0.5,-0.5,-0.5],[0.5,0.5,-0.5],[-0.5,0.5,-0.5],
+                           [-0.5,-0.5,0.5],[0.5,-0.5,0.5],[0.5,0.5,0.5],[-0.5,0.5,0.5]];
+          const rotated = corners.map(([x,y,z]) => [x*c+z*sn, y, -x*sn+z*c]);
+          s.drawBox(0,0,0, 1,1,1, 'rgba(255,255,255,0.1)');
+          const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+          edges.forEach(([a,b]) => s.drawLine3D(rotated[a][0],rotated[a][1],rotated[a][2], rotated[b][0],rotated[b][1],rotated[b][2], '#6c5ce7', 1.5));
+          s.drawArc3D(0,0,0, 0.8, 0, a, 'y', '#fcc419');
+          s.ctx.font = '600 11px JetBrains Mono';
+          s.ctx.fillStyle = '#fcc419';
+          s.ctx.fillText(`${v.angle}° around Y`, 10, s.h - 10);
+        }
+      },
+      {
+        title: 'Rotation (All Axes)',
+        desc: 'Euler angles: rotate around X, then Y, then Z. Order matters! Different orders give different results.',
+        code: 'mat4 R = Rz * Ry * Rx;\n// Apply X first, then Y, then Z\n// Order matters!',
+        sliders: [
+          { id: 'rx', label: 'Rx', min: 0, max: 360, step: 1, val: 0 },
+          { id: 'ry', label: 'Ry', min: 0, max: 360, step: 1, val: 0 },
+          { id: 'rz', label: 'Rz', min: 0, max: 360, step: 1, val: 0 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2, true);
+          const ax = v.rx*Math.PI/180, ay = v.ry*Math.PI/180, az = v.rz*Math.PI/180;
+          function rot(p) {
+            let [x,y,z] = p;
+            /* Rx */ let y1 = y*Math.cos(ax)-z*Math.sin(ax), z1 = y*Math.sin(ax)+z*Math.cos(ax); y=y1;z=z1;
+            /* Ry */ let x1 = x*Math.cos(ay)+z*Math.sin(ay); z1 = -x*Math.sin(ay)+z*Math.cos(ay); x=x1;z=z1;
+            /* Rz */ x1 = x*Math.cos(az)-y*Math.sin(az); y1 = x*Math.sin(az)+y*Math.cos(az); x=x1;y=y1;
+            return [x,y,z];
+          }
+          const corners = [[-0.5,-0.5,-0.5],[0.5,-0.5,-0.5],[0.5,0.5,-0.5],[-0.5,0.5,-0.5],
+                           [-0.5,-0.5,0.5],[0.5,-0.5,0.5],[0.5,0.5,0.5],[-0.5,0.5,0.5]];
+          const r = corners.map(rot);
+          s.drawBox(0,0,0, 1,1,1, 'rgba(255,255,255,0.08)');
+          const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+          edges.forEach(([a,b]) => s.drawLine3D(r[a][0],r[a][1],r[a][2], r[b][0],r[b][1],r[b][2], '#6c5ce7', 1.5));
+          /* show rotated axes */
+          const rx = rot([1,0,0]), ry = rot([0,1,0]), rz = rot([0,0,1]);
+          s.drawArrow3D(0,0,0, rx[0],rx[1],rx[2], '#ff6b6b');
+          s.drawArrow3D(0,0,0, ry[0],ry[1],ry[2], '#51cf66');
+          s.drawArrow3D(0,0,0, rz[0],rz[1],rz[2], '#339af0');
+        }
+      },
+      {
+        title: 'Translation',
+        desc: 'Move a point by adding an offset. Requires a 4×4 matrix (homogeneous coordinates).',
+        code: 'mat4 T = mat4(\n  1, 0, 0, tx,\n  0, 1, 0, ty,\n  0, 0, 1, tz,\n  0, 0, 0,  1);',
+        sliders: [
+          { id: 'tx', label: 'Tx', min: -2, max: 2, step: 0.1, val: 1.0 },
+          { id: 'ty', label: 'Ty', min: -2, max: 2, step: 0.1, val: 0.5 },
+          { id: 'tz', label: 'Tz', min: -2, max: 2, step: 0.1, val: 0.0 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2, true);
+          s.drawBox(0,0,0, 0.8,0.8,0.8, 'rgba(255,255,255,0.1)');
+          s.drawBox(v.tx,v.ty,v.tz, 0.8,0.8,0.8, '#6c5ce7');
+          s.drawDashedLine3D(0,0,0, v.tx,v.ty,v.tz, 'rgba(108,92,231,0.4)');
+          s.drawPoint3D(0,0,0,'rgba(255,255,255,0.3)',4);
+          s.drawPoint3D(v.tx,v.ty,v.tz,'#6c5ce7',4);
+        }
+      },
+      {
+        title: 'TRS Order',
+        desc: 'Standard transform order: Scale first, then Rotate, then Translate. M = T × R × S. Applied right-to-left.',
+        code: 'mat4 M = T * R * S;\n// S applied first to vertex\n// then R, then T',
+        sliders: [
+          { id: 'scale', label: 'S', min: 0.3, max: 2, step: 0.1, val: 0.8 },
+          { id: 'rot', label: 'R°', min: 0, max: 360, step: 1, val: 30 },
+          { id: 'tx', label: 'Tx', min: -2, max: 2, step: 0.1, val: 1.0 },
+          { id: 'ty', label: 'Ty', min: -2, max: 2, step: 0.1, val: 0.5 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2);
+          const a = v.rot * Math.PI / 180;
+          const c = Math.cos(a), sn = Math.sin(a);
+          const corners = [[-0.5,-0.5,0],[0.5,-0.5,0],[0.5,0.5,0],[-0.5,0.5,0]];
+          /* S then R then T */
+          const transformed = corners.map(([x,y,z]) => {
+            x *= v.scale; y *= v.scale; /* scale */
+            const x2 = x*c-y*sn, y2 = x*sn+y*c; /* rotate Z */
+            return [x2+v.tx, y2+v.ty, z]; /* translate */
+          });
+          /* original */
+          for (let i = 0; i < 4; i++) {
+            const j = (i+1)%4;
+            s.drawLine3D(corners[i][0],corners[i][1],0, corners[j][0],corners[j][1],0, 'rgba(255,255,255,0.1)', 1);
+          }
+          /* transformed */
+          for (let i = 0; i < 4; i++) {
+            const j = (i+1)%4;
+            s.drawLine3D(transformed[i][0],transformed[i][1],0, transformed[j][0],transformed[j][1],0, '#6c5ce7', 2);
+          }
+          s.ctx.font = '600 11px JetBrains Mono';
+          s.ctx.fillStyle = '#6c5ce7';
+          s.ctx.fillText('M = T × R × S (right to left)', 10, s.h - 10);
+        }
+      },
+    ]
+  },
+
+  /* ── PROJECTIONS ──────────────────────────────────── */
+  projections: {
+    title: 'Projections',
+    sub: 'How 3D becomes 2D on your screen.',
+    cards: [
+      {
+        title: 'Perspective Projection',
+        desc: 'Things farther away appear smaller. Defined by FOV, aspect ratio, near and far planes. Most common in games.',
+        code: 'mat4 P = perspective(\n  fov,    // field of view\n  aspect, // width/height\n  near,   // near clip\n  far);   // far clip',
+        sliders: [
+          { id: 'fov', label: 'FOV', min: 20, max: 120, step: 1, val: 60 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(6, 12);
+          const fov = v.fov * Math.PI / 180;
+          const near = 0.5, far = 3;
+          const tanHalf = Math.tan(fov / 2);
+          /* draw frustum */
+          const nw = near * tanHalf, nh = nw * 0.6;
+          const fw = far * tanHalf, fh = fw * 0.6;
+          /* near plane */
+          s.drawLine3D(-nw,nh,-near, nw,nh,-near, '#51cf66', 1.5);
+          s.drawLine3D(nw,nh,-near, nw,-nh,-near, '#51cf66', 1.5);
+          s.drawLine3D(nw,-nh,-near, -nw,-nh,-near, '#51cf66', 1.5);
+          s.drawLine3D(-nw,-nh,-near, -nw,nh,-near, '#51cf66', 1.5);
+          /* far plane */
+          s.drawLine3D(-fw,fh,-far, fw,fh,-far, '#339af0', 1);
+          s.drawLine3D(fw,fh,-far, fw,-fh,-far, '#339af0', 1);
+          s.drawLine3D(fw,-fh,-far, -fw,-fh,-far, '#339af0', 1);
+          s.drawLine3D(-fw,-fh,-far, -fw,fh,-far, '#339af0', 1);
+          /* edges */
+          s.drawLine3D(0,0,0, -fw,fh,-far, 'rgba(255,255,255,0.1)', 1);
+          s.drawLine3D(0,0,0, fw,fh,-far, 'rgba(255,255,255,0.1)', 1);
+          s.drawLine3D(0,0,0, fw,-fh,-far, 'rgba(255,255,255,0.1)', 1);
+          s.drawLine3D(0,0,0, -fw,-fh,-far, 'rgba(255,255,255,0.1)', 1);
+          s.drawPoint3D(0,0,0, '#fcc419', 5, 'eye');
+          s.ctx.font = '600 11px JetBrains Mono';
+          s.ctx.fillStyle = '#fcc419';
+          s.ctx.fillText(`FOV: ${v.fov}°`, 10, s.h - 10);
+        }
+      },
+      {
+        title: 'Orthographic Projection',
+        desc: 'No perspective foreshortening. Parallel lines stay parallel. Used in CAD, 2D games, UI.',
+        code: 'mat4 P = ortho(\n  left, right,\n  bottom, top,\n  near, far);',
+        sliders: [
+          { id: 'size', label: 'size', min: 0.5, max: 4, step: 0.1, val: 2 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(6, 12);
+          const sz = v.size, near = 0.3, far = 3;
+          const h = sz * 0.6;
+          /* box frustum */
+          s.drawLine3D(-sz,h,-near, sz,h,-near, '#51cf66', 1.5);
+          s.drawLine3D(sz,h,-near, sz,-h,-near, '#51cf66', 1.5);
+          s.drawLine3D(sz,-h,-near, -sz,-h,-near, '#51cf66', 1.5);
+          s.drawLine3D(-sz,-h,-near, -sz,h,-near, '#51cf66', 1.5);
+          s.drawLine3D(-sz,h,-far, sz,h,-far, '#339af0', 1);
+          s.drawLine3D(sz,h,-far, sz,-h,-far, '#339af0', 1);
+          s.drawLine3D(sz,-h,-far, -sz,-h,-far, '#339af0', 1);
+          s.drawLine3D(-sz,-h,-far, -sz,h,-far, '#339af0', 1);
+          s.drawLine3D(-sz,h,-near, -sz,h,-far, 'rgba(255,255,255,0.15)', 1);
+          s.drawLine3D(sz,h,-near, sz,h,-far, 'rgba(255,255,255,0.15)', 1);
+          s.drawLine3D(sz,-h,-near, sz,-h,-far, 'rgba(255,255,255,0.15)', 1);
+          s.drawLine3D(-sz,-h,-near, -sz,-h,-far, 'rgba(255,255,255,0.15)', 1);
+          s.ctx.font = '600 11px JetBrains Mono';
+          s.ctx.fillStyle = '#51cf66';
+          s.ctx.fillText('Parallel — no foreshortening', 10, s.h - 10);
+        }
+      },
+    ]
+  },
+
+  /* ── QUATERNIONS ──────────────────────────────────── */
+  quaternions: {
+    title: 'Quaternions',
+    sub: 'Rotation without gimbal lock. 4 components: (x, y, z, w).',
+    cards: [
+      {
+        title: 'Axis-Angle → Quaternion',
+        desc: 'A quaternion encodes rotation as an axis + angle. No gimbal lock, smooth interpolation (slerp).',
+        code: 'quat q = quat(\n  axis.x * sin(θ/2),\n  axis.y * sin(θ/2),\n  axis.z * sin(θ/2),\n  cos(θ/2));',
+        sliders: [
+          { id: 'ax', label: 'Axis X', min: 0, max: 1, step: 0.1, val: 0 },
+          { id: 'ay', label: 'Axis Y', min: 0, max: 1, step: 0.1, val: 1 },
+          { id: 'az', label: 'Axis Z', min: 0, max: 1, step: 0.1, val: 0 },
+          { id: 'angle', label: 'deg', min: 0, max: 360, step: 1, val: 45 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2, true);
+          let len = Math.sqrt(v.ax*v.ax+v.ay*v.ay+v.az*v.az) || 0.001;
+          const nx = v.ax/len, ny = v.ay/len, nz = v.az/len;
+          const a = v.angle * Math.PI / 180;
+          /* show axis */
+          s.drawVector(0,0,0, nx*2,ny*2,nz*2, '#fcc419', 'axis');
+          s.drawVector(0,0,0, -nx*2,-ny*2,-nz*2, 'rgba(252,196,25,0.2)');
+          /* show rotation arc */
+          s.drawArc3D(0,0,0, 1, 0, a, ny > 0.5 ? 'y' : nz > 0.5 ? 'x' : 'z', '#6c5ce7');
+          /* rotate a point */
+          const half = a/2;
+          const qx = nx*Math.sin(half), qy = ny*Math.sin(half), qz = nz*Math.sin(half), qw = Math.cos(half);
+          /* rotate (1,0,0) by quaternion */
+          function qrot(px,py,pz) {
+            const tx = 2*(qy*pz-qz*py), ty = 2*(qz*px-qx*pz), tz = 2*(qx*py-qy*px);
+            return [px+qw*tx+qy*tz-qz*ty, py+qw*ty+qz*tx-qx*tz, pz+qw*tz+qx*ty-qy*tx];
+          }
+          const corners = [[-0.5,-0.5,-0.5],[0.5,-0.5,-0.5],[0.5,0.5,-0.5],[-0.5,0.5,-0.5],
+                           [-0.5,-0.5,0.5],[0.5,-0.5,0.5],[0.5,0.5,0.5],[-0.5,0.5,0.5]];
+          const r = corners.map(c => qrot(c[0],c[1],c[2]));
+          s.drawBox(0,0,0, 1,1,1, 'rgba(255,255,255,0.06)');
+          const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+          edges.forEach(([a,b]) => s.drawLine3D(r[a][0],r[a][1],r[a][2], r[b][0],r[b][1],r[b][2], '#6c5ce7', 1.5));
+          s.ctx.font = '600 11px JetBrains Mono';
+          s.ctx.fillStyle = '#6c5ce7';
+          s.ctx.fillText(`q = (${qx.toFixed(2)}, ${qy.toFixed(2)}, ${qz.toFixed(2)}, ${qw.toFixed(2)})`, 10, s.h - 10);
+        }
+      },
+      {
+        title: 'Gimbal Lock',
+        desc: 'With Euler angles, when one axis aligns with another (e.g. X rot = 90°), you lose a degree of freedom. Quaternions avoid this.',
+        code: '// Euler: pitch=90° makes\n// yaw and roll do the same thing!\n// Quaternion: no such problem',
+        sliders: [
+          { id: 'pitch', label: 'pitch', min: 0, max: 90, step: 1, val: 0 },
+          { id: 'yaw', label: 'yaw', min: 0, max: 360, step: 1, val: 0 },
+          { id: 'roll', label: 'roll', min: 0, max: 360, step: 1, val: 0 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          const px = v.pitch*Math.PI/180, yw = v.yaw*Math.PI/180, rl = v.roll*Math.PI/180;
+          function rot(p) {
+            let [x,y,z] = p;
+            let y1=y*Math.cos(px)-z*Math.sin(px), z1=y*Math.sin(px)+z*Math.cos(px); y=y1;z=z1;
+            let x1=x*Math.cos(yw)+z*Math.sin(yw); z1=-x*Math.sin(yw)+z*Math.cos(yw); x=x1;z=z1;
+            x1=x*Math.cos(rl)-y*Math.sin(rl); y1=x*Math.sin(rl)+y*Math.cos(rl); x=x1;y=y1;
+            return [x,y,z];
+          }
+          const ax = rot([1.5,0,0]), ay = rot([0,1.5,0]), az = rot([0,0,1.5]);
+          s.drawArrow3D(0,0,0, ax[0],ax[1],ax[2], '#ff6b6b', 'X');
+          s.drawArrow3D(0,0,0, ay[0],ay[1],ay[2], '#51cf66', 'Y');
+          s.drawArrow3D(0,0,0, az[0],az[1],az[2], '#339af0', 'Z');
+          const locked = v.pitch >= 85;
+          s.ctx.font = '700 14px Inter';
+          s.ctx.fillStyle = locked ? '#ff6b6b' : '#51cf66';
+          s.ctx.fillText(locked ? '⚠ GIMBAL LOCK — Y and Z collapse!' : 'No gimbal lock', 10, s.h - 10);
+        }
+      },
+    ]
+  },
+
+  /* ── COORDINATE SPACES ────────────────────────────── */
+  spaces: {
+    title: 'Coordinate Spaces',
+    sub: 'The pipeline from model vertices to screen pixels.',
+    cards: [
+      {
+        title: 'The Rendering Pipeline',
+        desc: 'Vertices go through: Model → World → View → Clip → NDC → Screen. Each step is a matrix multiply.',
+        code: 'gl_Position = \n  Projection *  // clip space\n  View *        // camera\n  Model *       // world pos\n  vertex;       // local pos',
+        draw(s, t) {
+          s.drawGrid(6, 12);
+          /* draw the pipeline as boxes */
+          const stages = [
+            { x: -3, label: 'Model', color: '#ff6b6b' },
+            { x: -1.5, label: 'World', color: '#ff922b' },
+            { x: 0, label: 'View', color: '#fcc419' },
+            { x: 1.5, label: 'Clip', color: '#51cf66' },
+            { x: 3, label: 'NDC', color: '#339af0' },
+          ];
+          stages.forEach((st, i) => {
+            s.drawBox(st.x, 0.5, 0, 1, 1, 0.5, st.color);
+            const p = s.project(st.x, 1.3, 0);
+            s.ctx.font = '700 11px Inter';
+            s.ctx.fillStyle = st.color;
+            s.ctx.textAlign = 'center';
+            s.ctx.fillText(st.label, p.sx, p.sy);
+            if (i < stages.length - 1) {
+              s.drawArrow3D(st.x + 0.6, 0.5, 0, stages[i+1].x - 0.6, 0.5, 0, 'rgba(255,255,255,0.2)');
+            }
+          });
+          s.ctx.textAlign = 'left';
+          s.ctx.font = '600 11px JetBrains Mono';
+          s.ctx.fillStyle = 'rgba(255,255,255,0.4)';
+          s.ctx.fillText('vertex → Model → World → View → Clip → NDC → Screen', 10, s.h - 10);
+        }
+      },
+      {
+        title: 'Model vs World Space',
+        desc: 'Model space: vertices relative to object origin. World space: after applying the model matrix (position + rotation + scale in the scene).',
+        code: 'worldPos = modelMatrix * localPos;\n// modelMatrix = T * R * S',
+        sliders: [
+          { id: 'tx', label: 'pos X', min: -2, max: 2, step: 0.1, val: 1.5 },
+          { id: 'rot', label: 'rot°', min: 0, max: 360, step: 1, val: 30 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(4, 8);
+          s.drawAxes(2, true);
+          /* model space cube at origin */
+          s.drawBox(0,0.4,0, 0.6,0.6,0.6, 'rgba(255,255,255,0.1)');
+          s.ctx.font = '600 10px Inter';
+          const po = s.project(0, 1, 0);
+          s.ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          s.ctx.textAlign = 'center';
+          s.ctx.fillText('model space', po.sx, po.sy);
+          /* world space: translated + rotated */
+          const a = v.rot * Math.PI / 180;
+          const c = Math.cos(a), sn = Math.sin(a);
+          const corners = [[-0.3,-0.3,-0.3],[0.3,-0.3,-0.3],[0.3,0.3,-0.3],[-0.3,0.3,-0.3],
+                           [-0.3,-0.3,0.3],[0.3,-0.3,0.3],[0.3,0.3,0.3],[-0.3,0.3,0.3]];
+          const r = corners.map(([x,y,z]) => [x*c+z*sn + v.tx, y + 0.4, -x*sn+z*c]);
+          const edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+          edges.forEach(([a,b]) => s.drawLine3D(r[a][0],r[a][1],r[a][2], r[b][0],r[b][1],r[b][2], '#6c5ce7', 1.5));
+          const pw = s.project(v.tx, 1, 0);
+          s.ctx.fillStyle = '#6c5ce7';
+          s.ctx.fillText('world space', pw.sx, pw.sy);
+          s.drawDashedLine3D(0,0.4,0, v.tx,0.4,0, 'rgba(108,92,231,0.3)');
+          s.ctx.textAlign = 'left';
+        }
+      },
+      {
+        title: 'View Space (Camera)',
+        desc: 'Everything relative to the camera. Camera is at origin, looking down -Z. Built with lookAt(eye, target, up).',
+        code: 'mat4 V = lookAt(eye, target, up);\n// eye: camera position\n// target: what to look at\n// up: which way is up (0,1,0)',
+        sliders: [
+          { id: 'ez', label: 'eye Z', min: 1, max: 5, step: 0.1, val: 3 },
+          { id: 'ey', label: 'eye Y', min: 0, max: 3, step: 0.1, val: 1.5 },
+        ],
+        draw(s, t, v) {
+          s.drawGrid(6, 12);
+          s.drawAxes(2);
+          /* camera */
+          s.drawPoint3D(0, v.ey, v.ez, '#fcc419', 6, 'eye');
+          /* target */
+          s.drawPoint3D(0, 0, 0, '#ff6b6b', 4, 'target');
+          /* look direction */
+          s.drawArrow3D(0,v.ey,v.ez, 0,0,0, 'rgba(252,196,25,0.4)');
+          /* up vector */
+          s.drawVector(0,v.ey,v.ez, 0,0.8,0, '#51cf66', 'up');
+          /* some objects in the scene */
+          s.drawBox(-1, 0.3, -1, 0.5, 0.5, 0.5, '#339af0');
+          s.drawBox(1, 0.3, 0, 0.5, 0.5, 0.5, '#ff6b6b');
+        }
+      },
+    ]
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════
+   BUILD UI
+   ═══════════════════════════════════════════════════════════ */
+const content = document.getElementById('content');
+const scenes = {};
+
+function buildAll() {
+  for (const [key, sec] of Object.entries(SECTIONS)) {
+    const div = document.createElement('div');
+    div.className = 'section' + (key === 'vectors' ? ' active' : '');
+    div.id = 'sec-' + key;
+    div.innerHTML = `<h2 class="section-title">${sec.title}</h2><p class="section-sub">${sec.sub}</p>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'card-grid';
+
+    sec.cards.forEach((card, ci) => {
+      const cardEl = document.createElement('div');
+      cardEl.className = 'card';
+
+      const canvas = document.createElement('canvas');
+      canvas.className = 'card-canvas';
+
+      const body = document.createElement('div');
+      body.className = 'card-body';
+
+      let controlsHTML = '';
+      if (card.sliders) {
+        controlsHTML = '<div class="card-controls">' + card.sliders.map(sl =>
+          `<div class="slider-row">
+            <label>${sl.label}</label>
+            <input type="range" min="${sl.min}" max="${sl.max}" step="${sl.step}" value="${sl.val}" data-id="${sl.id}">
+            <span class="val" data-val="${sl.id}">${sl.val}</span>
+          </div>`
+        ).join('') + '</div>';
+      }
+
+      body.innerHTML = `
+        <div class="card-title">${card.title}</div>
+        <div class="card-desc">${card.desc}</div>
+        ${controlsHTML}
+        <div class="card-code">${card.code}</div>
+      `;
+
+      cardEl.appendChild(canvas);
+      cardEl.appendChild(body);
+      grid.appendChild(cardEl);
+
+      /* init scene after DOM insert */
+      requestAnimationFrame(() => {
+        const scene = new Scene3D(canvas);
+        scene.autoRotate = true;
+        const sceneKey = key + '_' + ci;
+        scenes[sceneKey] = { scene, card };
+
+        /* gather slider values */
+        function getVals() {
+          const vals = {};
+          if (card.sliders) {
+            card.sliders.forEach(sl => {
+              const input = body.querySelector(`input[data-id="${sl.id}"]`);
+              vals[sl.id] = parseFloat(input.value);
+            });
+          }
+          return vals;
+        }
+
+        scene.onFrame = (s, t) => {
+          card.draw(s, t, getVals());
+        };
+
+        /* slider listeners */
+        if (card.sliders) {
+          body.querySelectorAll('input[type=range]').forEach(input => {
+            input.addEventListener('input', () => {
+              const valEl = body.querySelector(`[data-val="${input.dataset.id}"]`);
+              if (valEl) valEl.textContent = input.value;
+            });
+          });
+        }
+      });
+    });
+
+    div.appendChild(grid);
+    content.appendChild(div);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NAV
+   ═══════════════════════════════════════════════════════════ */
+document.querySelectorAll('.nav-link').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const sec = link.dataset.section;
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    link.classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-' + sec).classList.add('active');
+    /* resize canvases in newly visible section */
+    setTimeout(() => {
+      Object.values(scenes).forEach(({ scene }) => scene.resize());
+    }, 50);
+  });
+});
+
+/* handle resize */
+window.addEventListener('resize', () => {
+  Object.values(scenes).forEach(({ scene }) => scene.resize());
+});
+
+buildAll();
+</script>
+</body>
+</html>
