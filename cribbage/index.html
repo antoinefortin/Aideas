@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cribbage — l'école</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Cribbage <span>l'école du jeu</span></h1>
+    <nav>
+      <button class="btn ghost" id="btnNew">Nouvelle partie</button>
+      <button class="btn ghost" id="btnRules">📖 Règles</button>
+      <button class="btn ghost" id="btnPractice">🎓 Pratique du compte</button>
+      <button class="btn ghost" id="btnOptions">⚙️ Options</button>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="table">
+      <div class="board-wrap">
+        <div class="scores">
+          <div class="score you" id="scoreBoxYou"><span class="dot"></span>Toi <b id="scoreYou">0</b><small id="needYou"></small></div>
+          <div class="score cpu" id="scoreBoxCpu"><span class="dot"></span>Ordi <b id="scoreCpu">0</b><small id="needCpu"></small></div>
+        </div>
+        <svg id="board" role="img" aria-label="Planche de cribbage"></svg>
+      </div>
+
+      <div class="zone cpu-zone" id="cpuZone">
+        <div class="zone-label">Ordinateur <span id="cpuDealerTag"></span></div>
+        <div id="cpuHand" class="hand"></div>
+      </div>
+
+      <div class="middle">
+        <div class="deck-area">
+          <div class="label">Paquet</div>
+          <div class="deck-row"><div id="deck"></div><div id="starter"></div></div>
+        </div>
+        <div class="play-area">
+          <div class="label">Jeu <span id="countDisplay" class="count"></span></div>
+          <div id="pile"></div>
+        </div>
+        <div class="crib-area">
+          <div class="label" id="cribLabel">Crib</div>
+          <div id="crib"></div>
+        </div>
+      </div>
+
+      <div class="zone you-zone" id="youZone">
+        <div class="zone-label">Toi <span id="youDealerTag"></span></div>
+        <div id="youHand" class="hand"></div>
+        <div id="actions" class="actions"></div>
+      </div>
+    </section>
+
+    <aside class="tutor">
+      <div class="phase-card">
+        <div class="phase-kicker">Tuteur</div>
+        <h2 class="phase-name" id="phaseName"></h2>
+        <div class="phase-text" id="phaseText"></div>
+        <div class="advice hidden" id="advice"></div>
+      </div>
+      <div class="log-wrap">
+        <h3>Journal de la partie</h3>
+        <div id="log"></div>
+      </div>
+    </aside>
+  </main>
+
+  <div id="gameModal" class="modal hidden">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h2 class="modal-title"></h2>
+        <button class="btn ghost small" id="gameModalRules">📖 Règles du compte</button>
+        <button class="modal-x" aria-label="Fermer">×</button>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="infoModal" class="modal hidden info">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h2 class="modal-title"></h2>
+        <button class="modal-x" aria-label="Fermer">×</button>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="js/cards.js"></script>
+  <script src="js/scoring.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/board.js"></script>
+  <script src="js/counter.js"></script>
+  <script src="js/rules.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
