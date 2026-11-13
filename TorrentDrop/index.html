@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Drop a torrent or magnet link and get direct download links. No server, runs entirely in your browser.">
+<title>TorrentDrop — Torrent to direct download</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0f1a;--card:#141a2a;--text:#eef1fa;--muted:#8a95b0;--accent:#7eb6ff;--accent2:#5b9bf7;--line:#252e42;--green:#6ee7a0;--red:#ff8a8a}
+*{box-sizing:border-box;margin:0}
+body{background:radial-gradient(ellipse at 20% 0%,#162040 0%,transparent 50%),var(--bg);color:var(--text);font:15px/1.6 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+main{max-width:900px;margin:auto;padding:32px 24px 50px}
+nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:48px}
+.brand{font-weight:800;font-size:22px;letter-spacing:-1px}.brand span{color:var(--accent)}
+.badge{border:1px solid #2e3d5e;color:var(--accent);padding:5px 12px;border-radius:30px;font-size:12px}
+h1{font-size:clamp(32px,5.5vw,56px);line-height:1.1;letter-spacing:-1.5px;margin:12px 0 18px}
+h1 span{color:var(--accent)}
+.intro{color:var(--muted);max-width:600px;font-size:16px;margin-bottom:28px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;margin-bottom:18px}
+.input-row{display:flex;gap:10px}
+.input-row input{flex:1;background:#0e1420;border:1px solid var(--line);border-radius:10px;padding:12px 16px;color:var(--text);font:15px system-ui;outline:none}
+.input-row input:focus{border-color:var(--accent)}
+.input-row input::placeholder{color:#556}
+button,.dl-btn{border:0;border-radius:10px;padding:12px 20px;background:var(--accent);color:#0b1422;font:700 14px system-ui;cursor:pointer;text-decoration:none;display:inline-block;white-space:nowrap}
+button:disabled{opacity:.35;cursor:default}
+button:hover:enabled,.dl-btn:hover{filter:brightness(1.1)}
+.secondary{background:#2a3450;color:var(--text)}
+.drop{display:block;border:1px dashed #3a4a6a;border-radius:14px;padding:22px;text-align:center;background:#7eb6ff06;cursor:pointer;position:relative;margin-top:14px}
+.drop:hover,.drop.over{background:#7eb6ff12;border-color:var(--accent)}
+.drop input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.drop strong{display:block;font-size:16px}
+.small{font-size:12px;color:var(--muted)}
+.or{text-align:center;color:var(--muted);font-size:13px;margin:12px 0}
+h2{font-size:13px;font-weight:600;margin:0 0 16px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+#status{margin-top:14px;color:var(--muted);min-height:22px}
+#status.error{color:var(--red)}
+.torrent-info{margin-bottom:20px}
+.torrent-info .name{font-size:20px;font-weight:700;margin-bottom:4px;word-break:break-word}
+.torrent-info .meta{color:var(--muted);font-size:13px}
+.progress-wrap{background:#0e1420;border-radius:8px;height:8px;overflow:hidden;margin:16px 0 8px}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:8px;transition:width .3s}
+.stats{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+.stat{font-size:13px;color:var(--muted)}.stat b{color:var(--text);font-size:15px}
+.file-list{list-style:none;padding:0}
+.file-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:#0e1420;border-radius:10px;margin-bottom:8px;word-break:break-word}
+.file-item .fname{flex:1;font-size:14px}
+.file-item .fsize{color:var(--muted);font-size:12px;white-space:nowrap}
+.dl-btn{font-size:12px;padding:7px 14px;flex-shrink:0}
+.dl-btn.pending{background:#2a3450;color:var(--muted);pointer-events:none}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:32px}
+.notice{color:var(--muted);font-size:12px;margin-top:16px}
+[hidden]{display:none!important}
+@media(max-width:600px){main{padding:20px 16px}.input-row{flex-direction:column}.stats{gap:12px}.file-item{flex-direction:column;align-items:flex-start;gap:8px}}
+</style>
+</head>
+<body><main>
+<nav><div class="brand">&#9661; Torrent<span>Drop</span></div><span class="badge">100% browser-side</span></nav>
+<header>
+<h1>Torrent in.<br><span>Direct links out.</span></h1>
+<p class="intro">Paste a magnet link or drop a .torrent file. Downloads happen peer-to-peer in your browser via WebRTC. Get direct download links for every file.</p>
+</header>
+
+<section class="card" id="inputCard">
+<h2>Add a torrent</h2>
+<div class="input-row">
+<input id="magnetInput" type="text" placeholder="magnet:?xt=urn:btih:... or info hash" aria-label="Magnet link or info hash">
+<button id="goBtn">Download</button>
+</div>
+<div class="or">or</div>
+<label class="drop" id="drop">
+<input id="fileInput" type="file" accept=".torrent" aria-label="Choose a .torrent file">
+<strong>Drop a .torrent file here</strong>
+<span class="small">click to browse</span>
+</label>
+<p id="status" role="status" aria-live="polite">Ready. Paste a magnet link or drop a .torrent file.</p>
+</section>
+
+<section class="card" id="resultCard" hidden>
+<div class="torrent-info">
+<div class="name" id="torrentName">—</div>
+<div class="meta" id="torrentMeta"></div>
+</div>
+<div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0"></div></div>
+<div class="stats">
+<div class="stat">Progress: <b id="progressText">0%</b></div>
+<div class="stat">Down: <b id="dlSpeed">0 KB/s</b></div>
+<div class="stat">Up: <b id="ulSpeed">0 KB/s</b></div>
+<div class="stat">Peers: <b id="peers">0</b></div>
+<div class="stat">ETA: <b id="eta">--</b></div>
+</div>
+<h2>Files</h2>
+<ul class="file-list" id="fileList"></ul>
+<div style="margin-top:14px">
+<button id="downloadAll" class="secondary" disabled>Download all as ZIP</button>
+<button id="destroyBtn" class="secondary" style="margin-left:8px">Remove torrent</button>
+</div>
+<p class="notice">Files are held in memory. Very large torrents may slow down your browser. Download files as they complete or use the ZIP button when everything is done.</p>
+</section>
+
+<footer>No server. No uploads. Peer-to-peer via WebRTC using WebTorrent.<br>Only works with torrents that have WebRTC-capable seeders or use web seeds. Some torrents with only traditional BitTorrent peers may not connect.</footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/webtorrent@2.5.1/webtorrent.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const magnetInput = $('#magnetInput');
+const goBtn = $('#goBtn');
+const fileInput = $('#fileInput');
+const dropEl = $('#drop');
+const status = $('#status');
+const resultCard = $('#resultCard');
+const fileList = $('#fileList');
+
+let client = null;
+let activeTorrent = null;
+
+function getClient() {
+  if (!client) client = new WebTorrent();
+  return client;
+}
+
+function formatBytes(b) {
+  if (b === 0) return '0 B';
+  const u = ['B','KB','MB','GB','TB'];
+  const i = Math.min(Math.floor(Math.log(b) / Math.log(1024)), u.length - 1);
+  return (b / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0) + ' ' + u[i];
+}
+
+function formatTime(s) {
+  if (!s || !isFinite(s)) return '--';
+  if (s < 60) return Math.round(s) + 's';
+  if (s < 3600) return Math.floor(s / 60) + 'm ' + Math.round(s % 60) + 's';
+  return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+}
+
+function setStatus(msg, isError) {
+  status.textContent = msg;
+  status.className = isError ? 'error' : '';
+}
+
+function addTorrent(source) {
+  if (activeTorrent) {
+    setStatus('A torrent is already active. Remove it first.', true);
+    return;
+  }
+
+  setStatus('Connecting to peers...');
+  goBtn.disabled = true;
+
+  const wt = getClient();
+  wt.add(source, { announce: [
+    'wss://tracker.openwebtorrent.com',
+    'wss://tracker.btorrent.xyz',
+    'wss://tracker.fastcast.nz'
+  ]}, onTorrent);
+
+  wt.on('error', e => {
+    setStatus('Error: ' + e.message, true);
+    goBtn.disabled = false;
+  });
+}
+
+function onTorrent(torrent) {
+  activeTorrent = torrent;
+  resultCard.hidden = false;
+  $('#torrentName').textContent = torrent.name;
+  $('#torrentMeta').textContent = torrent.files.length + ' file' + (torrent.files.length > 1 ? 's' : '') + ' \u00b7 ' + formatBytes(torrent.length);
+
+  setStatus('Downloading from peers...');
+
+  fileList.innerHTML = '';
+  const blobMap = new Map();
+
+  torrent.files.forEach((file, i) => {
+    const li = document.createElement('li');
+    li.className = 'file-item';
+    li.innerHTML =
+      '<span class="fname">' + escHtml(file.name) + '</span>' +
+      '<span class="fsize">' + formatBytes(file.length) + '</span>' +
+      '<a class="dl-btn pending" id="fbtn' + i + '">waiting...</a>';
+    fileList.appendChild(li);
+
+    file.blob().then(blob => {
+      blobMap.set(i, blob);
+      const url = URL.createObjectURL(blob);
+      const btn = $('#fbtn' + i);
+      btn.href = url;
+      btn.download = file.name;
+      btn.textContent = 'Download';
+      btn.className = 'dl-btn';
+    });
+  });
+
+  const interval = setInterval(() => {
+    if (!activeTorrent) { clearInterval(interval); return; }
+    const pct = Math.round(torrent.progress * 1000) / 10;
+    $('#progressBar').style.width = pct + '%';
+    $('#progressText').textContent = pct + '%';
+    $('#dlSpeed').textContent = formatBytes(torrent.downloadSpeed) + '/s';
+    $('#ulSpeed').textContent = formatBytes(torrent.uploadSpeed) + '/s';
+    $('#peers').textContent = torrent.numPeers;
+    $('#eta').textContent = formatTime(torrent.timeRemaining / 1000);
+
+    if (torrent.progress === 1) {
+      setStatus('Done! All files ready to download.');
+      $('#downloadAll').disabled = false;
+      clearInterval(interval);
+    }
+  }, 500);
+
+  $('#downloadAll').onclick = async () => {
+    if (torrent.files.length === 1) {
+      const b = blobMap.get(0);
+      if (b) { dl(URL.createObjectURL(b), torrent.files[0].name); }
+      return;
+    }
+    setStatus('Zipping files...');
+    $('#downloadAll').disabled = true;
+    const zip = new JSZip();
+    for (let i = 0; i < torrent.files.length; i++) {
+      const blob = blobMap.get(i) || await torrent.files[i].blob();
+      zip.file(torrent.files[i].path, blob);
+    }
+    const zblob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+    dl(URL.createObjectURL(zblob), torrent.name + '.zip');
+    setStatus('Done! ZIP downloaded.');
+    $('#downloadAll').disabled = false;
+  };
+
+  $('#destroyBtn').onclick = () => {
+    torrent.destroy();
+    activeTorrent = null;
+    resultCard.hidden = true;
+    fileList.innerHTML = '';
+    goBtn.disabled = false;
+    setStatus('Torrent removed. Ready for another.');
+  };
+
+  torrent.on('error', e => setStatus('Torrent error: ' + e.message, true));
+}
+
+function dl(url, name) {
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// --- event wiring ---
+goBtn.addEventListener('click', () => {
+  const v = magnetInput.value.trim();
+  if (!v) { setStatus('Paste a magnet link or info hash.', true); return; }
+  addTorrent(v);
+});
+
+magnetInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') goBtn.click();
+});
+
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) addTorrent(f);
+});
+
+dropEl.addEventListener('dragover', e => { e.preventDefault(); dropEl.classList.add('over'); });
+dropEl.addEventListener('dragleave', () => dropEl.classList.remove('over'));
+dropEl.addEventListener('drop', e => {
+  e.preventDefault(); dropEl.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f) addTorrent(f);
+});
+</script>
+</body>
+</html>
