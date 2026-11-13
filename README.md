@@ -3,6 +3,8 @@ A place where I just put code of stuff I made with AI
 
 ## Projects
 
+- [Still](Still/) — Immersive, mobile-first guided breathing for sleep, a busy mind, and anxiety. [▶ Open Still](https://antoinefortin.github.io/Aideas/Still/)
+
 - [Cribbage](cribbage/) — Jeu de cribbage en français contre l’ordinateur, avec tuteur et pratique du compte. [▶ Jouer](https://antoinefortin.github.io/Aideas/cribbage/)
 
 - [FeverLegacy](FeverLegacy/) — Immersive 3D exploration of Panic! At The Disco's *A Fever You Can't Sweat Out* (2005) and its cultural impact. Three.js. [▶ Run it](https://antoinefortin.github.io/Aideas/FeverLegacy/)
