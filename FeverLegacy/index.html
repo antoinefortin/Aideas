@@ -815,19 +815,28 @@ const loadInterval = setInterval(() => {
     loadDone = true;
     enterMsg.textContent = '>>> CLICK ANYWHERE TO ENTER <<<';
     enterMsg.style.color = '#c9a84c';
+    enterMsg.style.cursor = 'pointer';
+    document.getElementById('loader').style.cursor = 'pointer';
   }
 }, 100);
 
-/* single global click handler for the start — catches everything */
-document.addEventListener('click', function onFirstClick() {
-  if (!loadDone) return; /* wait for bar to fill */
-  document.removeEventListener('click', onFirstClick);
+/* multiple event types to ensure the enter click works everywhere */
+function tryEnter() {
+  if (!loadDone || started) return;
   startExperience();
-});
+}
+document.addEventListener('click', tryEnter);
+document.addEventListener('pointerdown', tryEnter);
+document.addEventListener('touchstart', tryEnter);
+document.getElementById('loader').onclick = tryEnter;
 
 function startExperience() {
   if (started) return;
   started = true;
+  document.removeEventListener('click', tryEnter);
+  document.removeEventListener('pointerdown', tryEnter);
+  document.removeEventListener('touchstart', tryEnter);
+  document.getElementById('loader').onclick = null;
   document.getElementById('loader').classList.add('done');
   /* create YouTube players NOW inside user gesture so browsers allow autoplay */
   initYouTubePlayers();
