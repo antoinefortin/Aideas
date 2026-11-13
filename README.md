@@ -3,6 +3,8 @@ A place where I just put code of stuff I made with AI
 
 ## Projects
 
+- [Window Seat](WindowSeat/) — Offline flight instruments, bundled world map, phone sensors, and private flight logs. Open once before boarding, then use in airplane mode. [▶ Open Window Seat](https://antoinefortin.github.io/Aideas/WindowSeat/)
+
 - [Still](Still/) — Immersive, mobile-first guided breathing for sleep, a busy mind, and anxiety. [▶ Open Still](https://antoinefortin.github.io/Aideas/Still/)
 
 - [Cribbage](cribbage/) — Jeu de cribbage en français contre l’ordinateur, avec tuteur et pratique du compte. [▶ Jouer](https://antoinefortin.github.io/Aideas/cribbage/)
@@ -13,6 +15,7 @@ A place where I just put code of stuff I made with AI
 - [TorrentDrop](TorrentDrop/) — Paste a magnet link or drop a .torrent, get direct download links. Pure browser, no server. [▶ Run it](https://antoinefortin.github.io/Aideas/TorrentDrop/)
 - [GuitarTune](GuitarTune/) — Chromatic guitar tuner with 25+ tuning presets (emo, metal, jazz, open, 7-string). FFT pitch detection via mic, reference tones, gauge. [▶ Run it](https://antoinefortin.github.io/Aideas/GuitarTune/)
 - [3DMathViz](3DMathViz/) — Interactive visual reference for 3D rendering math: vectors, matrices, transforms, projections, quaternions, coordinate spaces. Animated demos with live sliders. [▶ Run it](https://antoinefortin.github.io/Aideas/3DMathViz/)
+- [DroneSwarm](DroneSwarm/) — 2D drone swarm simulator with boids flocking, coverage radius visualization, heatmap, and interactive attract/repel. [▶ Run it](https://antoinefortin.github.io/Aideas/DroneSwarm/)
 - [PodTube](PodTube/) — Turn YouTube videos into a podcast RSS feed. Add videos, generate a feed URL, subscribe in any podcast app. No server. [▶ Run it](https://antoinefortin.github.io/Aideas/PodTube/)
 - [SignPDF](SignPDF/) — Free PDF signer: open a PDF, draw or type your signature, add text/dates, download the signed PDF. Mobile-first, no server. [▶ Run it](https://antoinefortin.github.io/Aideas/SignPDF/)
 - [SilenceCut](Silencer/) — Remove silence from audio recordings directly in your browser. No uploads, no server. [▶ Run it](https://antoinefortin.github.io/Aideas/Silencer/)

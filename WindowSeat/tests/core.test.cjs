@@ -1,0 +1,11 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const C=require('../core.js');
+const fix=(overrides={})=>({type:'fix',t:100000,lat:45,lon:-73,alt:1000,altAcc:10,acc:8,speed:200,track:90,...overrides});
+test('missing altitude and speed stay missing rather than becoming zero',()=>{const f=C.normalize({timestamp:1000,coords:{latitude:0,longitude:0,accuracy:10,altitude:null,altitudeAccuracy:null,speed:null,heading:NaN}});assert.equal(f.alt,null);assert.equal(f.speed,null);assert.equal(f.track,null);assert.equal(f.lat,0)});
+test('reject invalid fixes and preserve a genuine zero speed',()=>{assert.equal(C.normalize({timestamp:0,coords:{latitude:91,longitude:0,accuracy:1}}),null);const f=C.normalize({timestamp:0,coords:{latitude:0,longitude:0,accuracy:1,speed:0,altitude:0}});assert.equal(f.speed,0);assert.equal(f.alt,0)});
+test('great circle distance is accurate across the dateline',()=>{const d=C.distance({lat:0,lon:179},{lat:0,lon:-179});assert.ok(Math.abs(d-222390)<10)});
+test('gaps, poor accuracy and impossible jumps do not add flight distance',()=>{const a=fix(),b=fix({t:110000,lon:-72.99}),gap=fix({t:180000,lon:-70}),bad=fix({t:190000,lon:-69.99,acc:5000});assert.ok(C.totalDistance([a,b])>700);assert.equal(C.totalDistance([a,b,gap,bad]),C.totalDistance([a,b]));assert.equal(C.acceptedSegment(a,fix({t:101000,lon:0})),false)});
+test('vertical trend requires adequate time and altitude accuracy',()=>{const a=fix(),b=fix({t:110000,alt:1100,lon:-72.99});assert.equal(C.verticalTrend([a,b]),600);assert.equal(C.verticalTrend([a,fix({...b,altAcc:null})]),null);assert.equal(C.verticalTrend([a,fix({...b,t:140000})]),null)});
+test('track does not draw a line across the dateline or through missing fixes',()=>{const p=C.pathFor([fix({lat:0,lon:179.99}),fix({t:110000,lat:0,lon:-179.99})]);assert.equal((p.match(/M/g)||[]).length,2);assert.equal(p.includes('L'),false)});
+test('CSV safely quotes note commas, newlines and quote characters',()=>{const s=C.csv([{type:'note',t:10,text:'clouds, "wow"\nhello'}]);assert.ok(s.includes('"clouds, ""wow""\nhello"'));assert.ok(s.startsWith('type,t,lat,lon'))});
