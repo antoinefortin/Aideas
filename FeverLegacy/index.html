@@ -2,559 +2,815 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="An immersive 3D exploration of the cultural impact of Panic! At The Disco's A Fever You Can't Sweat Out (2005).">
-<title>A FEVER YOU CAN'T SWEAT OUT — The Legacy</title>
+<title>A FEVER YOU CAN'T SWEAT OUT — Enter The Theatre</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Special+Elite&family=Cutive+Mono&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:#0a0506;color:#e8ddd0;font-family:'Playfair Display',Georgia,serif;overflow-x:hidden;cursor:crosshair}
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Special+Elite&family=VT323&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;cursor:crosshair;font-family:'VT323',monospace}
+canvas{display:block;image-rendering:pixelated}
 
-/* loading */
-#loader{position:fixed;inset:0;z-index:9999;background:#0a0506;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 1s}
+/* loading screen — flash era */
+#loader{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 1.5s}
 #loader.done{opacity:0;pointer-events:none}
-#loader h1{font-size:clamp(20px,4vw,42px);letter-spacing:6px;text-transform:uppercase;color:#c9a84c;animation:pulse 1.5s ease-in-out infinite}
-#loader p{color:#8a7a60;margin-top:12px;font-family:'Cutive Mono',monospace;font-size:13px}
-@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+#loader .bar-wrap{width:280px;height:12px;border:2px solid #c9a84c;margin-top:20px;background:#111}
+#loader .bar{height:100%;width:0;background:#c9a84c;transition:width 0.3s}
+#loader h1{font-family:'Press Start 2P',monospace;font-size:11px;color:#c9a84c;letter-spacing:2px;text-align:center;line-height:1.8}
+#loader p{font-family:'VT323',monospace;font-size:16px;color:#666;margin-top:12px}
 
-/* three.js canvas */
-#scene{position:fixed;inset:0;z-index:0}
+/* HUD */
+#hud{position:fixed;top:0;left:0;right:0;z-index:100;pointer-events:none;padding:12px 16px;display:flex;justify-content:space-between;align-items:flex-start}
+#hud *{pointer-events:auto}
+.hud-title{font-family:'Press Start 2P',monospace;font-size:8px;color:#c9a84c;letter-spacing:1px;text-shadow:0 0 10px #c9a84c80}
+.hud-hint{font-family:'VT323',monospace;font-size:16px;color:#c9a84c80;text-align:right}
+#crosshair{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99;pointer-events:none;font-size:24px;color:#c9a84c60;text-shadow:0 0 6px #c9a84c40;display:none}
 
-/* scroll container */
-#content{position:relative;z-index:1;pointer-events:none}
-#content>*{pointer-events:auto}
+/* article panel overlay */
+#articlePanel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;width:min(680px,90vw);max-height:80vh;background:rgba(8,4,2,0.96);border:2px solid #c9a84c;display:none;overflow-y:auto;padding:0}
+#articlePanel.open{display:block}
+#articlePanel .ap-header{background:linear-gradient(90deg,#c9a84c,#8b2020);padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
+#articlePanel .ap-header h3{font-family:'Press Start 2P',monospace;font-size:9px;color:#000;letter-spacing:1px}
+#articlePanel .ap-close{background:none;border:2px solid #000;color:#000;font-family:'Press Start 2P',monospace;font-size:8px;padding:4px 10px;cursor:pointer}
+#articlePanel .ap-close:hover{background:#000;color:#c9a84c}
+#articlePanel .ap-body{padding:24px;color:#b8a890;font-family:'VT323',monospace;font-size:18px;line-height:1.6}
+#articlePanel .ap-body h4{font-family:'Special Elite',monospace;font-size:22px;color:#c9a84c;margin:16px 0 8px}
+#articlePanel .ap-body .quote{border-left:3px solid #c9a84c;padding:8px 16px;margin:12px 0;color:#c9a84c;font-style:italic;background:rgba(201,168,76,0.05)}
+#articlePanel .ap-body .quote cite{display:block;font-size:14px;color:#665;margin-top:4px;font-style:normal}
+#articlePanel .ap-body .stat-row{display:flex;gap:16px;margin:12px 0;flex-wrap:wrap}
+#articlePanel .ap-body .stat-box{background:#111;border:1px solid #2a1f14;padding:12px;text-align:center;flex:1;min-width:80px}
+#articlePanel .ap-body .stat-box .num{font-size:28px;color:#c9a84c;display:block}
+#articlePanel .ap-body .stat-box .lbl{font-size:12px;color:#665}
+#articlePanel .ap-body .tag{display:inline-block;background:#1a1210;border:1px solid #c9a84c40;color:#c9a84c;padding:2px 8px;margin:2px;font-size:13px}
+#articlePanel .video-embed{position:relative;padding-bottom:56.25%;height:0;margin:16px 0;background:#000}
+#articlePanel .video-embed iframe{position:absolute;inset:0;width:100%;height:100%}
 
-/* sections */
-.section{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:60px 24px;position:relative}
-.panel{max-width:720px;width:100%;background:rgba(10,5,6,0.82);backdrop-filter:blur(16px);border:1px solid #2a1f14;border-radius:4px;padding:48px 44px;position:relative;overflow:hidden}
-.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#c9a84c,#8b2020,#c9a84c)}
-.panel::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#c9a84c40,transparent)}
+/* scanlines overlay */
+#scanlines{position:fixed;inset:0;z-index:50;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);mix-blend-mode:multiply}
 
-/* typography */
-.era{font-family:'Cutive Mono',monospace;font-size:11px;letter-spacing:4px;color:#c9a84c;text-transform:uppercase;margin-bottom:20px;display:block}
-h2{font-size:clamp(28px,4.5vw,52px);font-weight:900;line-height:1.05;letter-spacing:-1px;margin-bottom:24px;color:#e8ddd0}
-h2 em{font-style:italic;color:#c9a84c}
-h3{font-size:18px;font-weight:700;color:#c9a84c;margin:28px 0 12px;font-family:'Playfair Display',serif}
-p{font-size:15.5px;line-height:1.75;color:#b8a890;margin-bottom:16px}
-p strong{color:#e8ddd0;font-weight:600}
-.quote{border-left:2px solid #c9a84c;padding:16px 24px;margin:24px 0;background:rgba(201,168,76,0.04);font-style:italic;font-size:16px;color:#c9a84c;line-height:1.7}
-.quote cite{display:block;font-size:12px;color:#8a7a60;margin-top:8px;font-style:normal;font-family:'Cutive Mono',monospace}
-.tag{display:inline-block;font-family:'Cutive Mono',monospace;font-size:10px;background:#1a1210;border:1px solid #2a1f14;color:#c9a84c;padding:3px 10px;border-radius:2px;margin:2px 4px 2px 0;letter-spacing:1px}
-.tracklist{list-style:none;padding:0;margin:20px 0}
-.tracklist li{font-size:13px;font-family:'Cutive Mono',monospace;padding:8px 12px;border-bottom:1px solid #1a1210;color:#8a7a60;display:flex;gap:10px}
-.tracklist li:hover{background:rgba(201,168,76,0.05);color:#e8ddd0}
-.tracklist .num{color:#c9a84c;min-width:24px;text-align:right}
-.tracklist .side{color:#8b2020;font-size:10px;padding:8px 12px;border:none;letter-spacing:3px;text-transform:uppercase}
+/* CRT vignette */
+#crt{position:fixed;inset:0;z-index:51;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.6) 100%)}
 
-/* video embeds */
-.video-wrap{position:relative;padding-bottom:56.25%;height:0;margin:24px 0;border-radius:4px;overflow:hidden;border:1px solid #2a1f14}
-.video-wrap iframe{position:absolute;inset:0;width:100%;height:100%}
+/* interaction prompt */
+#prompt{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:100;font-family:'Press Start 2P',monospace;font-size:8px;color:#c9a84c;background:rgba(0,0,0,0.8);border:1px solid #c9a84c40;padding:8px 16px;display:none;letter-spacing:1px;white-space:nowrap}
+#prompt.show{display:block;animation:blink 1s step-end infinite}
+@keyframes blink{50%{border-color:#c9a84c}}
 
-/* timeline */
-.timeline{position:relative;padding-left:28px;margin:20px 0}
-.timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:1px;background:#2a1f14}
-.timeline-item{position:relative;margin-bottom:24px;padding-left:20px}
-.timeline-item::before{content:'';position:absolute;left:-24px;top:6px;width:9px;height:9px;background:#c9a84c;border-radius:50%;border:2px solid #0a0506}
-.timeline-date{font-family:'Cutive Mono',monospace;font-size:10px;color:#c9a84c;letter-spacing:2px}
-.timeline-text{font-size:14px;color:#b8a890;margin-top:4px}
+/* audio indicator */
+#audioIndicator{position:fixed;bottom:16px;right:16px;z-index:100;font-family:'VT323',monospace;font-size:14px;color:#c9a84c60;cursor:pointer}
 
-/* stats grid */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:24px 0}
-.stat{text-align:center;padding:20px 10px;background:rgba(201,168,76,0.03);border:1px solid #1a1210;border-radius:3px}
-.stat .num{font-size:32px;font-weight:900;color:#c9a84c;display:block;line-height:1}
-.stat .label{font-family:'Cutive Mono',monospace;font-size:9px;color:#8a7a60;letter-spacing:2px;text-transform:uppercase;margin-top:6px;display:block}
-
-/* scroll indicator */
-.scroll-hint{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10;font-family:'Cutive Mono',monospace;font-size:10px;color:#c9a84c40;letter-spacing:3px;text-transform:uppercase;animation:bob 2s ease-in-out infinite}
-@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-8px)}}
-
-/* noise overlay */
-.noise{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:128px}
-
-/* vignette */
-.vignette{position:fixed;inset:0;z-index:3;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(10,5,6,0.7) 100%)}
-
-/* responsive */
-@media(max-width:600px){.panel{padding:32px 22px}.stats{grid-template-columns:1fr 1fr}}
+/* now playing */
+#nowPlaying{position:fixed;bottom:16px;left:16px;z-index:100;font-family:'VT323',monospace;font-size:14px;color:#c9a84c;opacity:0;transition:opacity 0.5s}
+#nowPlaying.show{opacity:1}
 </style>
 </head>
 <body>
 
-<div id="loader"><h1>A Fever You Can't Sweat Out</h1><p>Loading the theatre...</p></div>
-<canvas id="scene"></canvas>
-<div class="noise"></div>
-<div class="vignette"></div>
-<div class="scroll-hint">scroll to explore</div>
-
-<div id="content">
-
-<!-- ═══ HERO ═══ -->
-<div class="section" id="hero">
-<div class="panel" style="text-align:center">
-<span class="era">September 27, 2005 &middot; Fueled by Ramen / Decaydance</span>
-<h2 style="font-size:clamp(32px,6vw,68px);letter-spacing:-2px">A Fever You<br>Can't <em>Sweat Out</em></h2>
-<p style="font-size:17px;max-width:480px;margin:0 auto 24px">How four teenagers from Las Vegas crashed the emo party dressed like vaudeville performers &mdash; and rewrote the rules of a generation.</p>
-<div>
-<span class="tag">Pop Punk</span><span class="tag">Emo</span><span class="tag">Baroque Pop</span><span class="tag">Dance Punk</span><span class="tag">Vaudeville</span><span class="tag">Electronica</span>
-</div>
-</div>
+<div id="loader">
+<h1>A FEVER YOU CAN'T<br>SWEAT OUT</h1>
+<p>LOADING THEATRE ASSETS...</p>
+<div class="bar-wrap"><div class="bar" id="loadBar"></div></div>
+<p style="margin-top:20px;font-size:13px;color:#444">CLICK ANYWHERE TO ENTER &middot; 2005</p>
 </div>
 
-<!-- ═══ ORIGIN STORY ═══ -->
-<div class="section" id="origin">
-<div class="panel">
-<span class="era">The Genesis &middot; Las Vegas, 2004</span>
-<h2>Four Kids, a <em>LiveJournal</em>, and a Dream</h2>
-<p><strong>Ryan Ross</strong> and <strong>Spencer Smith</strong>, childhood friends from Summerlin, Nevada, recruited classmate <strong>Brendon Urie</strong> and <strong>Brent Wilson</strong> to form a band in 2004. Ross was initially the vocalist, but after hearing Urie sing during a rehearsal, they knew they had their frontman.</p>
-<p>In what would become one of music's great origin myths, Ross sent a demo to <strong>Pete Wentz</strong> of Fall Out Boy via LiveJournal. Wentz, already running <strong>Decaydance Records</strong>, signed them immediately &mdash; <em>before the band had ever played a single live show</em>.</p>
-<div class="quote">"We hadn't even played a gig yet. Pete just heard the demos online and said, 'I want to sign you.' It was insane."<cite>&mdash; Spencer Smith, drummer</cite></div>
-<p>The band name came from a lyric in the song <em>"Panic"</em> by the British band Name Taken, filtered through the exclamation-point-happy MySpace era. They were teenagers — Ross and Smith were 18, Urie was just 17.</p>
-</div>
+<div id="hud">
+<div class="hud-title">A FEVER YOU CAN'T SWEAT OUT &middot; 2005</div>
+<div class="hud-hint">CLICK TO MOVE &middot; CLICK OBJECTS TO INTERACT<br>WASD / ARROWS TO LOOK</div>
 </div>
 
-<!-- ═══ THE ALBUM ═══ -->
-<div class="section" id="album">
-<div class="panel">
-<span class="era">The Record &middot; Recorded June–August 2005</span>
-<h2>$11,000. Three and a Half <em>Weeks</em>.</h2>
-<p>Produced by <strong>Matt Squire</strong> on a budget of just <strong>$11,000</strong>, <em>A Fever You Can't Sweat Out</em> was recorded in roughly three and a half weeks, including mixing and mastering. Most of the album's choruses and harmonies were tracked in a single session.</p>
-<p>The album's masterstroke was its <strong>split structure</strong>: tracks 1–7 are driven by <strong>synthesizers and drum machines</strong> — dance-punk, electronica, angular post-punk energy. Then comes the <em>Intermission</em>, which begins with techno beats before dissolving into piano. Tracks 9–13 flip entirely to <strong>acoustic instruments</strong>: accordion, organ, cello, trumpet, violin. Pure <strong>vaudeville, baroque pop, and theatrical cabaret</strong>.</p>
-<h3>Full Tracklist</h3>
-<ul class="tracklist">
-<li class="side">Side A — Electronic</li>
-<li><span class="num">1.</span> Introduction</li>
-<li><span class="num">2.</span> The Only Difference Between Martyrdom and Suicide Is Press Coverage</li>
-<li><span class="num">3.</span> London Beckoned Songs About Money Written by Machines</li>
-<li><span class="num">4.</span> Nails for Breakfast, Tacks for Snacks</li>
-<li><span class="num">5.</span> Camisado</li>
-<li><span class="num">6.</span> Time to Dance</li>
-<li><span class="num">7.</span> Lying Is the Most Fun a Girl Can Have Without Taking Her Clothes Off</li>
-<li class="side">Intermission</li>
-<li><span class="num">8.</span> Intermission</li>
-<li class="side">Side B — Vaudeville</li>
-<li><span class="num">9.</span> But It's Better If You Do</li>
-<li><span class="num">10.</span> I Write Sins Not Tragedies</li>
-<li><span class="num">11.</span> I Constantly Thank God for Esteban</li>
-<li><span class="num">12.</span> There's a Good Reason These Tables Are Numbered Honey, You Just Haven't Thought of It Yet</li>
-<li><span class="num">13.</span> Build God, Then We'll Talk</li>
-</ul>
-<p style="font-size:12px;color:#6a5a40;font-family:'Cutive Mono',monospace;margin-top:8px">Song titles inspired by Chuck Palahniuk novels, Douglas Coupland, and the literary excess of a generation raised on irony.</p>
-</div>
+<div id="crosshair">+</div>
+<div id="scanlines"></div>
+<div id="crt"></div>
+<div id="prompt"></div>
+<div id="audioIndicator" onclick="toggleMute()">SOUND: ON</div>
+<div id="nowPlaying"></div>
+
+<div id="articlePanel">
+<div class="ap-header"><h3 id="apTitle">ARTICLE</h3><button class="ap-close" onclick="closeArticle()">[ X ] CLOSE</button></div>
+<div class="ap-body" id="apBody"></div>
 </div>
 
-<!-- ═══ THE AUDACITY ═══ -->
-<div class="section" id="audacity">
-<div class="panel">
-<span class="era">The Aesthetic &middot; Vaudeville Meets Emo, 2005</span>
-<h2>The Sheer <em>Audacity</em> of It</h2>
-<p>In 2005, emo was eyeliner, side-swept bangs, and confessional sadness. The scene lived in black. Then Panic! showed up dressed like they'd raided a <strong>1920s burlesque theatre</strong>.</p>
-<p>Where their contemporaries — Fall Out Boy, My Chemical Romance, Taking Back Sunday — leaned into punk aggression or gothic romanticism, Panic! chose something nobody expected: <strong>vaudeville</strong>. Circus ringmasters. Masquerade masks. Corsets. Accordion solos. Cabaret staging. It was maximalist, theatrical, and deliberately anachronistic.</p>
-<div class="quote">"It was less a music video than a collapsing stage play. The wedding imploding under the guidance of a ringmaster, guests in masks, corsets, and exaggerated expressions."<cite>&mdash; On the "I Write Sins Not Tragedies" video</cite></div>
-<p>Ryan Ross's songwriting drew from <strong>literary fiction</strong> — Chuck Palahniuk's <em>Invisible Monsters</em>, Douglas Coupland's <em>Shampoo Planet</em> (from which "I Write Sins Not Tragedies" takes its title concept). The song titles were deliberately long, deliberately pretentious, deliberately <em>too much</em>. In an era of three-word song titles, Ross gave us 15-word baroque sentences.</p>
-<p>The orchestral instrumentation — <strong>pizzicato cello, trumpet, violin, organ</strong> — gave the second half a quality described as having <em>"sparkle and a sense of mischief akin to The Pink Panther Theme."</em> It shouldn't have worked. It was audacious. It was <strong>brilliant</strong>.</p>
-</div>
-</div>
+<!-- hidden youtube players for spatial audio -->
+<div id="ytPlayers" style="position:fixed;bottom:-1000px;left:-1000px;width:1px;height:1px;overflow:hidden"></div>
 
-<!-- ═══ I WRITE SINS ═══ -->
-<div class="section" id="sins">
-<div class="panel">
-<span class="era">The Anthem &middot; Released January 2006</span>
-<h2>I Write <em>Sins</em> Not Tragedies</h2>
-<p>The single that changed everything. A song about overhearing gossip about a bride's infidelity at a wedding — told with <strong>sarcasm, theatrical detachment, and a circus of masked performers</strong>.</p>
-<div class="video-wrap">
-<iframe src="https://www.youtube.com/embed/vc6vs-l5dkc?autoplay=0&rel=0" title="I Write Sins Not Tragedies" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
-</div>
-<p>The music video won <strong>Video of the Year</strong> at the 2006 MTV VMAs. Brendon Urie served as both narrator and the groom's conscience, surrounded by clown-faced wedding guests and carnival performers creating melodramatic chaos.</p>
-<div class="stats">
-<div class="stat"><span class="num">#7</span><span class="label">Billboard Hot 100</span></div>
-<div class="stat"><span class="num">#3</span><span class="label">Billboard Best 2000s Video</span></div>
-<div class="stat"><span class="num">VMA</span><span class="label">Video of the Year 2006</span></div>
-</div>
-<p>The chorus became a <strong>cultural staple</strong> — yelled at full volume at practically every millennial wedding for the next fifteen years. <em>Variety</em> ranked it as one of the best emo songs of all time in 2022.</p>
-</div>
-</div>
-
-<!-- ═══ KEY TRACKS ═══ -->
-<div class="section" id="tracks-section">
-<div class="panel">
-<span class="era">The Deep Cuts &middot; Side A</span>
-<h2>The <em>Electronic</em> Side</h2>
-<p><strong>"The Only Difference Between Martyrdom and Suicide Is Press Coverage"</strong> — the lead single. Dance-punk energy with synth stabs, the song set the tone: this was not your typical emo band.</p>
-<div class="video-wrap">
-<iframe src="https://www.youtube.com/embed/cCnMhpVHMvQ?autoplay=0&rel=0" title="The Only Difference Between Martyrdom and Suicide Is Press Coverage" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
-</div>
-<p><strong>"Lying Is the Most Fun a Girl Can Have Without Taking Her Clothes Off"</strong> — a sultry, bass-driven track that closes Side A. The title alone was a statement of intent: these kids weren't afraid to be provocative, literary, and absurdly verbose simultaneously.</p>
-<div class="video-wrap">
-<iframe src="https://www.youtube.com/embed/ohzAPqwGFQM?autoplay=0&rel=0" title="Lying Is the Most Fun a Girl Can Have Without Taking Her Clothes Off" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
-</div>
-
-<h3 style="margin-top:36px">Side B — The Vaudeville Half</h3>
-<p><strong>"But It's Better If You Do"</strong> opens Side B with swinging piano and cabaret energy — the full vaudeville turn. This is where the album becomes something <em>nobody</em> expected from an emo band in 2005.</p>
-<div class="video-wrap">
-<iframe src="https://www.youtube.com/embed/uBtH2YlNiNc?autoplay=0&rel=0" title="But It's Better If You Do" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
-</div>
-<p><strong>"Build God, Then We'll Talk"</strong> — the closing track. A narrative about a prostitute and a call girl, told over music-box piano and sweeping strings. It's the album's most ambitious and theatrical moment, ending the record like a final curtain call.</p>
-<div class="video-wrap">
-<iframe src="https://www.youtube.com/embed/VtDBSxDE0Wg?autoplay=0&rel=0" title="Build God, Then We'll Talk" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
-</div>
-</div>
-</div>
-
-<!-- ═══ CRITICAL RECEPTION ═══ -->
-<div class="section" id="reception">
-<div class="panel">
-<span class="era">The Critics &middot; 2005–2006</span>
-<h2>A <em>Polarizing</em> Debut</h2>
-<p>The album divided critics like few records of its era. It was, as <em>Billboard</em> later declared, <strong>"one of the most polarizing albums of our time."</strong></p>
-<h3>Pitchfork: 1.5 / 10</h3>
-<div class="quote">"It's sad that this is what emo has become."<cite>&mdash; Cory D. Byrom, Pitchfork, 2005</cite></div>
-<p>Pitchfork's Cory D. Byrom gave the album a devastating <strong>1.5 out of 10</strong>, criticizing it for an apparent lack of <em>"sincerity, creativity, or originality."</em> In retrospect, this score has become almost as legendary as the album itself — a monument to <strong>critical misjudgment</strong> in the face of music that simply didn't fit the indie playbook.</p>
-<p>Other outlets were more receptive. The album debuted at <strong>#13 on the Billboard 200</strong> and eventually went <strong>double platinum</strong> in the US. The fans didn't need Pitchfork's permission.</p>
-<div class="stats">
-<div class="stat"><span class="num">#13</span><span class="label">Billboard 200 Debut</span></div>
-<div class="stat"><span class="num">2x</span><span class="label">Platinum (US)</span></div>
-<div class="stat"><span class="num">1.5</span><span class="label">Pitchfork Score (lol)</span></div>
-</div>
-<p>The album was a <strong>commercial juggernaut</strong> regardless. It defined the sound and visual identity of an entire MySpace generation — the generation that discovered music through profile pages, AIM away messages, and Hot Topic shelves.</p>
-</div>
-</div>
-
-<!-- ═══ CULTURAL IMPACT ═══ -->
-<div class="section" id="impact">
-<div class="panel">
-<span class="era">The Ripple Effect &middot; 2005–Forever</span>
-<h2>More Than a <em>Band</em></h2>
-<p>Panic! At The Disco was never just a band — they were a <strong>community</strong>. Online fan fiction about Ryan Ross and Brendon Urie built devoted fanbases. The theatrical nature of the project meant their existence functioned as <em>"constant performance, a spectacle to the extreme."</em></p>
-<h3>Timeline of Impact</h3>
-<div class="timeline">
-<div class="timeline-item"><div class="timeline-date">Sept 2005</div><div class="timeline-text">Album released. The MySpace page explodes. Hot Topic can't keep the merch in stock.</div></div>
-<div class="timeline-item"><div class="timeline-date">Jan 2006</div><div class="timeline-text">"I Write Sins Not Tragedies" released as a single. Reaches #7 on the Hot 100.</div></div>
-<div class="timeline-item"><div class="timeline-date">Aug 2006</div><div class="timeline-text">Wins Video of the Year at the MTV VMAs. Panic! are suddenly one of the biggest bands in America.</div></div>
-<div class="timeline-item"><div class="timeline-date">2006–2008</div><div class="timeline-text">The vaudeville aesthetic influences countless emo bands. Eyeliner + top hats become a look.</div></div>
-<div class="timeline-item"><div class="timeline-date">2025</div><div class="timeline-text">20th anniversary reissue. Billboard calls it one of the most polarizing albums of our time. The legacy is cemented.</div></div>
-</div>
-<div class="quote">"Panic! At The Disco brought a vaudevillian flair that changed the aesthetic of the 2000s forever, injecting a sense of playfulness and high-concept storytelling into a scene that was often bogged down in its own gloom."<cite>&mdash; On the album's lasting influence</cite></div>
-<p>The album proved that emo could be <strong>theatrical, literary, and absurd</strong> — that you could reference Chuck Palahniuk and use an accordion and still sell two million records. It expanded the sonic and visual boundaries of what was possible in a scene that often policed its own borders.</p>
-</div>
-</div>
-
-<!-- ═══ CODA ═══ -->
-<div class="section" id="coda" style="min-height:80vh">
-<div class="panel" style="text-align:center">
-<span class="era">Curtain Call &middot; 2005 &mdash; &infin;</span>
-<h2 style="font-size:clamp(24px,4vw,44px)">What a <em>Beautiful</em> Wedding</h2>
-<p style="max-width:480px;margin:0 auto 20px;font-size:17px;color:#c9a84c">The album that Pitchfork gave a 1.5.<br>The album that sold two million copies.<br>The album that proved the critics wrong.<br><br>The fever never broke.</p>
-<div class="video-wrap">
-<iframe src="https://www.youtube.com/embed/vc6vs-l5dkc?autoplay=1&start=0&rel=0&loop=1&playlist=vc6vs-l5dkc" title="I Write Sins Not Tragedies — Final" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
-</div>
-<p style="font-size:11px;color:#5a4a30;font-family:'Cutive Mono',monospace;margin-top:24px">Made with love for the theatre kids, the MySpace generation,<br>and everyone who ever screamed "I chime in" at a wedding.</p>
-</div>
-</div>
-
-<div style="height:15vh"></div>
-</div>
-
-<!-- ═══ THREE.JS ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 'use strict';
 
-/* ── Scene setup ─────────────────────────────────────────── */
-const canvas = document.getElementById('scene');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.8;
+/* ═══════════════════════════════════════════════════════════
+   CONFIG & STATE
+   ═══════════════════════════════════════════════════════════ */
+const PI = Math.PI, TAU = PI * 2;
+let camera, scene, renderer, raycaster, mouse;
+let playerPos = new THREE.Vector3(0, 1.6, 14);
+let targetPos = playerPos.clone();
+let playerRot = 0, targetRot = 0;
+let lookX = 0, lookY = 0;
+let moving = false;
+let hoveredObj = null;
+let muted = false;
+let articleOpen = false;
+const interactables = [];
+const clock = new THREE.Clock();
+const keys = {};
 
-const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x0a0506, 0.015);
-
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-camera.position.set(0, 2, 8);
-
-/* ── Lighting — theatrical, moody ────────────────────────── */
-const ambient = new THREE.AmbientLight(0x1a0808, 0.4);
-scene.add(ambient);
-
-/* spotlight from above — like a stage light */
-const spot1 = new THREE.SpotLight(0xc9a84c, 15, 50, Math.PI * 0.3, 0.5, 1);
-spot1.position.set(0, 20, 0);
-scene.add(spot1);
-
-const spot2 = new THREE.SpotLight(0x8b2020, 8, 40, Math.PI * 0.4, 0.6, 1);
-spot2.position.set(-10, 15, -5);
-scene.add(spot2);
-
-const spot3 = new THREE.SpotLight(0x3a1540, 6, 40, Math.PI * 0.4, 0.6, 1);
-spot3.position.set(10, 15, -5);
-scene.add(spot3);
-
-/* point lights for particle glow */
-const pointGold = new THREE.PointLight(0xc9a84c, 3, 30);
-pointGold.position.set(0, 5, 0);
-scene.add(pointGold);
-
-/* ── Curtains (tall planes flanking the "stage") ─────────── */
-const curtainGeo = new THREE.PlaneGeometry(8, 25, 30, 60);
-const curtainMat = new THREE.MeshStandardMaterial({
-  color: 0x6b0a0a,
-  roughness: 0.8,
-  metalness: 0.1,
-  side: THREE.DoubleSide,
-});
-
-function makeCurtain(x, rotY) {
-  const geo = curtainGeo.clone();
-  /* add wave to curtain */
-  const pos = geo.attributes.position;
-  for (let i = 0; i < pos.count; i++) {
-    const y = pos.getY(i);
-    const z = Math.sin(pos.getX(i) * 2 + y * 0.3) * 0.6;
-    pos.setZ(i, z);
+/* ═══════════════════════════════════════════════════════════
+   ARTICLE CONTENT
+   ═══════════════════════════════════════════════════════════ */
+const ARTICLES = {
+  origin: {
+    title: 'THE GENESIS — LAS VEGAS, 2004',
+    body: `<h4>Four Kids, a LiveJournal, and a Dream</h4>
+<p><b>Ryan Ross</b> and <b>Spencer Smith</b>, childhood friends from Summerlin, Nevada, recruited classmate <b>Brendon Urie</b> and <b>Brent Wilson</b> to form a band in 2004. Ross was initially the vocalist, but after hearing Urie sing during rehearsal, they knew they had their frontman.</p>
+<p>In what would become one of music's great origin myths, Ross sent a demo to <b>Pete Wentz</b> of Fall Out Boy via LiveJournal. Wentz, running Decaydance Records, signed them immediately — <i>before the band had ever played a single live show</i>.</p>
+<div class="quote">"We hadn't even played a gig yet. Pete just heard the demos online and said, 'I want to sign you.' It was insane."<cite>— Spencer Smith, drummer</cite></div>
+<p>Ross was 18. Urie was 17. They were teenagers from Las Vegas with a MySpace page and a dream that sounded like nothing else in emo.</p>
+<div class="stat-row"><div class="stat-box"><span class="num">2004</span><span class="lbl">FORMED</span></div><div class="stat-box"><span class="num">17-18</span><span class="lbl">YEARS OLD</span></div><div class="stat-box"><span class="num">0</span><span class="lbl">GIGS BEFORE SIGNING</span></div></div>`,
+    video: null
+  },
+  album: {
+    title: 'THE RECORD — $11,000 IN 3.5 WEEKS',
+    body: `<h4>A Split Personality</h4>
+<p>Produced by <b>Matt Squire</b> on a budget of <b>$11,000</b>, the album was recorded in roughly three and a half weeks, including mixing and mastering. Most choruses were tracked in a single session.</p>
+<p>The masterstroke: a <b>split structure</b>. Tracks 1–7 are driven by synthesizers and drum machines — dance-punk, electronica, angular post-punk energy. Then comes the Intermission, which begins with techno beats before dissolving into piano. Tracks 9–13 flip to acoustic instruments: <b>accordion, organ, cello, trumpet, violin</b>. Pure vaudeville, baroque pop, and theatrical cabaret.</p>
+<h4>Full Tracklist</h4>
+<p style="color:#c9a84c">— SIDE A: ELECTRONIC —</p>
+<p>1. Introduction<br>2. The Only Difference Between Martyrdom and Suicide Is Press Coverage<br>3. London Beckoned Songs About Money Written by Machines<br>4. Nails for Breakfast, Tacks for Snacks<br>5. Camisado<br>6. Time to Dance<br>7. Lying Is the Most Fun a Girl Can Have Without Taking Her Clothes Off</p>
+<p style="color:#c9a84c">— INTERMISSION —</p>
+<p style="color:#c9a84c">— SIDE B: VAUDEVILLE —</p>
+<p>9. But It's Better If You Do<br>10. I Write Sins Not Tragedies<br>11. I Constantly Thank God for Esteban<br>12. There's a Good Reason These Tables Are Numbered Honey...<br>13. Build God, Then We'll Talk</p>
+<div class="stat-row"><div class="stat-box"><span class="num">$11K</span><span class="lbl">BUDGET</span></div><div class="stat-box"><span class="num">3.5</span><span class="lbl">WEEKS</span></div><div class="stat-box"><span class="num">13</span><span class="lbl">TRACKS</span></div></div>`,
+    video: null
+  },
+  audacity: {
+    title: 'THE AUDACITY — VAUDEVILLE MEETS EMO',
+    body: `<h4>The Sheer Audacity of It</h4>
+<p>In 2005, emo was eyeliner, side-swept bangs, and confessional sadness. The scene lived in black. Then Panic! showed up dressed like they'd raided a <b>1920s burlesque theatre</b>.</p>
+<p>Where their contemporaries — Fall Out Boy, My Chemical Romance, Taking Back Sunday — leaned into punk aggression or gothic romanticism, Panic! chose something nobody expected: <b>vaudeville</b>. Circus ringmasters. Masquerade masks. Corsets. Accordion solos. Cabaret staging. Maximalist, theatrical, and deliberately anachronistic.</p>
+<div class="quote">"Panic! At The Disco brought a vaudevillian flair that changed the aesthetic of the 2000s forever, injecting a sense of playfulness and high-concept storytelling into a scene that was often bogged down in its own gloom."</div>
+<p>Ryan Ross's songwriting drew from <b>Chuck Palahniuk</b> and <b>Douglas Coupland</b>. The song titles were deliberately long, deliberately pretentious, deliberately <i>too much</i>. In an era of three-word song titles, Ross gave us 15-word baroque sentences.</p>
+<p>The orchestral instrumentation — <b>pizzicato cello, trumpet, violin, organ</b> — gave Side B a quality described as having "sparkle and a sense of mischief akin to The Pink Panther Theme."</p>
+<div class="tag">VAUDEVILLE</div><div class="tag">BURLESQUE</div><div class="tag">BAROQUE POP</div><div class="tag">EMO</div><div class="tag">CABARET</div><div class="tag">DANCE-PUNK</div>`,
+    video: null
+  },
+  sins: {
+    title: 'I WRITE SINS NOT TRAGEDIES',
+    body: `<h4>The Anthem That Changed Everything</h4>
+<p>A song about overhearing gossip about a bride's infidelity at a wedding — told with sarcasm, theatrical detachment, and a circus of masked performers.</p>
+<p>The title draws from Douglas Coupland's 1992 novel <i>Shampoo Planet</i>: "What I write are not sins; I write tragedies."</p>
+<div class="video-embed"><iframe src="https://www.youtube.com/embed/vc6vs-l5dkc?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>
+<p>The music video won <b>Video of the Year</b> at the 2006 MTV VMAs. It was less a music video than a collapsing stage play — the wedding imploding under the guidance of a ringmaster, guests in masks, corsets, and exaggerated expressions.</p>
+<div class="stat-row"><div class="stat-box"><span class="num">#7</span><span class="lbl">HOT 100</span></div><div class="stat-box"><span class="num">VMA</span><span class="lbl">VIDEO OF YEAR</span></div><div class="stat-box"><span class="num">#3</span><span class="lbl">BEST 2000s VIDEO</span></div></div>
+<p>The chorus became a cultural staple — yelled at full volume at practically every millennial wedding for fifteen years. Variety ranked it one of the best emo songs of all time.</p>`,
+    video: 'vc6vs-l5dkc'
+  },
+  pitchfork: {
+    title: 'PITCHFORK: 1.5 / 10',
+    body: `<h4>"It's sad that this is what emo has become."</h4>
+<div class="quote">"It's sad that this is what emo has become."<cite>— Cory D. Byrom, Pitchfork, 2005</cite></div>
+<p>Pitchfork's Cory D. Byrom gave the album a devastating <b>1.5 out of 10</b>, criticizing it for an apparent lack of "sincerity, creativity, or originality."</p>
+<p>In retrospect, this score has become almost as legendary as the album itself — a monument to <b>critical misjudgment</b> in the face of music that simply didn't fit the indie playbook.</p>
+<p>Billboard, ten years later, declared it <b>"one of the most polarizing albums of our time."</b></p>
+<p>The album debuted at <b>#13 on the Billboard 200</b> and went <b>double platinum</b> in the US. The fans didn't need Pitchfork's permission.</p>
+<div class="stat-row"><div class="stat-box"><span class="num">1.5</span><span class="lbl">PITCHFORK /10</span></div><div class="stat-box"><span class="num">2x</span><span class="lbl">PLATINUM</span></div><div class="stat-box"><span class="num">#13</span><span class="lbl">BILLBOARD 200</span></div></div>
+<div class="quote">"One of the most polarizing albums of our time."<cite>— Billboard, 2015</cite></div>`,
+    video: null
+  },
+  legacy: {
+    title: 'THE LEGACY — 2005 TO FOREVER',
+    body: `<h4>More Than a Band</h4>
+<p>Panic! At The Disco was never just a band — they were a <b>community</b>. Online fan fiction, LiveJournal discourse, AIM away messages with lyrics, Hot Topic merch runs. Their existence functioned as "constant performance, a spectacle to the extreme."</p>
+<h4>Timeline</h4>
+<p><b style="color:#c9a84c">Sept 2005</b> — Album released. MySpace explodes. Hot Topic can't keep merch in stock.</p>
+<p><b style="color:#c9a84c">Jan 2006</b> — "I Write Sins" released as single. Reaches #7 Hot 100.</p>
+<p><b style="color:#c9a84c">Aug 2006</b> — Wins Video of the Year at MTV VMAs.</p>
+<p><b style="color:#c9a84c">2006–2008</b> — Vaudeville aesthetic influences countless emo bands. Eyeliner + top hats become a look.</p>
+<p><b style="color:#c9a84c">2025</b> — 20th anniversary reissue. The legacy is cemented.</p>
+<p>The album proved that emo could be <b>theatrical, literary, and absurd</b> — that you could reference Chuck Palahniuk and use an accordion and still sell two million records.</p>`,
+    video: null
+  },
+  martyrdom: {
+    title: 'THE ONLY DIFFERENCE BETWEEN MARTYRDOM AND SUICIDE IS PRESS COVERAGE',
+    body: `<h4>The Lead Single</h4>
+<p>Dance-punk energy with synth stabs. The song that announced: <i>this is not your typical emo band</i>.</p>
+<div class="video-embed"><iframe src="https://www.youtube.com/embed/cCnMhpVHMvQ?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>
+<p>Released as the lead single, it set the tone for an album that would defy every expectation the scene had for a band signed by Pete Wentz.</p>`,
+    video: 'cCnMhpVHMvQ'
+  },
+  lying: {
+    title: 'LYING IS THE MOST FUN A GIRL CAN HAVE WITHOUT TAKING HER CLOTHES OFF',
+    body: `<h4>Side A's Crown Jewel</h4>
+<p>A sultry, bass-driven track that closes the electronic half. The title alone was a statement of intent: these kids weren't afraid to be provocative, literary, and absurdly verbose simultaneously.</p>
+<div class="video-embed"><iframe src="https://www.youtube.com/embed/ohzAPqwGFQM?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`,
+    video: 'ohzAPqwGFQM'
+  },
+  buildgod: {
+    title: 'BUILD GOD, THEN WE\'LL TALK',
+    body: `<h4>The Closing Curtain</h4>
+<p>A narrative told over music-box piano and sweeping strings. It's the album's most ambitious and theatrical moment, ending the record like a final curtain call.</p>
+<div class="video-embed"><iframe src="https://www.youtube.com/embed/VtDBSxDE0Wg?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`,
+    video: 'VtDBSxDE0Wg'
+  },
+  betterifyoudo: {
+    title: 'BUT IT\'S BETTER IF YOU DO',
+    body: `<h4>The Vaudeville Turn</h4>
+<p>Opens Side B with swinging piano and cabaret energy — the full vaudeville turn. This is where the album becomes something nobody expected from an emo band in 2005.</p>
+<div class="video-embed"><iframe src="https://www.youtube.com/embed/uBtH2YlNiNc?autoplay=0&rel=0" frameborder="0" allow="accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`,
+    video: 'uBtH2YlNiNc'
   }
-  geo.computeVertexNormals();
-  const mesh = new THREE.Mesh(geo, curtainMat.clone());
-  mesh.position.set(x, 5, -6);
-  mesh.rotation.y = rotY;
-  scene.add(mesh);
-  return mesh;
-}
-const curtainL = makeCurtain(-8, 0.15);
-const curtainR = makeCurtain(8, -0.15);
+};
 
-/* ── Stage floor ─────────────────────────────────────────── */
-const floorGeo = new THREE.PlaneGeometry(60, 60);
-const floorMat = new THREE.MeshStandardMaterial({
-  color: 0x0d0808,
-  roughness: 0.95,
-  metalness: 0.05,
-});
-const floor = new THREE.Mesh(floorGeo, floorMat);
-floor.rotation.x = -Math.PI / 2;
-floor.position.y = -3;
-scene.add(floor);
-
-/* ── Chandelier (cluster of point lights + icosahedrons) ── */
-const chandelierGroup = new THREE.Group();
-chandelierGroup.position.set(0, 10, -2);
-scene.add(chandelierGroup);
-
-const crystalGeo = new THREE.IcosahedronGeometry(0.12, 0);
-const crystalMat = new THREE.MeshStandardMaterial({
-  color: 0xc9a84c,
-  emissive: 0xc9a84c,
-  emissiveIntensity: 0.5,
-  roughness: 0.1,
-  metalness: 0.9,
-  transparent: true,
-  opacity: 0.7,
-});
-for (let i = 0; i < 40; i++) {
-  const crystal = new THREE.Mesh(crystalGeo, crystalMat.clone());
-  const angle = (i / 40) * Math.PI * 2;
-  const r = 1.5 + Math.random() * 2;
-  const y = -Math.random() * 3;
-  crystal.position.set(Math.cos(angle) * r, y, Math.sin(angle) * r);
-  crystal.scale.setScalar(0.5 + Math.random() * 1.5);
-  chandelierGroup.add(crystal);
-}
-
-/* ── Floating masks (vaudeville aesthetic) ────────────────── */
-const masks = [];
-const maskGeo = new THREE.SphereGeometry(0.5, 8, 6, 0, Math.PI);
-for (let i = 0; i < 12; i++) {
-  const mat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color().setHSL(0.08 + Math.random() * 0.05, 0.3, 0.15 + Math.random() * 0.15),
-    roughness: 0.6,
-    metalness: 0.4,
-    side: THREE.DoubleSide,
-  });
-  const mask = new THREE.Mesh(maskGeo, mat);
-  const angle = (i / 12) * Math.PI * 2;
-  const r = 10 + Math.random() * 8;
-  mask.userData = { angle, r, speed: 0.02 + Math.random() * 0.03, yBase: -1 + Math.random() * 8 };
-  mask.position.set(Math.cos(angle) * r, mask.userData.yBase, Math.sin(angle) * r - 10);
-  mask.scale.setScalar(0.8 + Math.random() * 1.2);
-  scene.add(mask);
-  masks.push(mask);
-}
-
-/* ── Particle system (dust / confetti) ────────────────────── */
-const particleCount = 800;
-const particleGeo = new THREE.BufferGeometry();
-const particlePos = new Float32Array(particleCount * 3);
-const particleSizes = new Float32Array(particleCount);
-const particleColors = new Float32Array(particleCount * 3);
-for (let i = 0; i < particleCount; i++) {
-  particlePos[i * 3] = (Math.random() - 0.5) * 40;
-  particlePos[i * 3 + 1] = Math.random() * 25 - 3;
-  particlePos[i * 3 + 2] = (Math.random() - 0.5) * 40 - 5;
-  particleSizes[i] = Math.random() * 3 + 1;
-  /* gold / red / white palette */
-  const hue = [0.08, 0.0, 0.12, 0.08][Math.floor(Math.random() * 4)];
-  const col = new THREE.Color().setHSL(hue, 0.6 + Math.random() * 0.4, 0.3 + Math.random() * 0.5);
-  particleColors[i * 3] = col.r;
-  particleColors[i * 3 + 1] = col.g;
-  particleColors[i * 3 + 2] = col.b;
-}
-particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
-particleGeo.setAttribute('size', new THREE.BufferAttribute(particleSizes, 1));
-particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
-
-const particleMat = new THREE.PointsMaterial({
-  size: 0.08,
-  vertexColors: true,
-  transparent: true,
-  opacity: 0.6,
-  blending: THREE.AdditiveBlending,
-  depthWrite: false,
-});
-const particles = new THREE.Points(particleGeo, particleMat);
-scene.add(particles);
-
-/* ── Rose petals (falling geometry) ──────────────────────── */
-const petals = [];
-const petalGeo = new THREE.CircleGeometry(0.08, 5);
-const petalMats = [
-  new THREE.MeshStandardMaterial({ color: 0x8b2020, side: THREE.DoubleSide, transparent: true, opacity: 0.6 }),
-  new THREE.MeshStandardMaterial({ color: 0xc9a84c, side: THREE.DoubleSide, transparent: true, opacity: 0.5 }),
-  new THREE.MeshStandardMaterial({ color: 0x5a1a1a, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }),
+/* audio zones: position in world, youtube video id, title */
+const AUDIO_ZONES = [
+  { pos: new THREE.Vector3(0, 2, -8), id: 'vc6vs-l5dkc', title: 'I Write Sins Not Tragedies', radius: 18 },
+  { pos: new THREE.Vector3(-8, 2, 4), id: 'cCnMhpVHMvQ', title: 'The Only Difference...', radius: 10 },
+  { pos: new THREE.Vector3(8, 2, 4), id: 'ohzAPqwGFQM', title: 'Lying Is the Most Fun...', radius: 10 },
+  { pos: new THREE.Vector3(-8, 2, -4), id: 'uBtH2YlNiNc', title: 'But It\'s Better If You Do', radius: 10 },
+  { pos: new THREE.Vector3(8, 2, -4), id: 'VtDBSxDE0Wg', title: 'Build God, Then We\'ll Talk', radius: 10 },
 ];
-for (let i = 0; i < 60; i++) {
-  const petal = new THREE.Mesh(petalGeo, petalMats[i % 3].clone());
-  petal.position.set((Math.random() - 0.5) * 30, Math.random() * 20 + 5, (Math.random() - 0.5) * 20 - 5);
-  petal.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-  petal.userData = {
-    fallSpeed: 0.005 + Math.random() * 0.015,
-    rotSpeed: new THREE.Vector3((Math.random() - 0.5) * 0.02, (Math.random() - 0.5) * 0.02, (Math.random() - 0.5) * 0.03),
-    drift: (Math.random() - 0.5) * 0.01,
-  };
-  scene.add(petal);
-  petals.push(petal);
+
+/* ═══════════════════════════════════════════════════════════
+   YOUTUBE IFRAME API
+   ═══════════════════════════════════════════════════════════ */
+const ytPlayers = {};
+let ytReady = false;
+
+/* load YT API */
+const ytScript = document.createElement('script');
+ytScript.src = 'https://www.youtube.com/iframe_api';
+document.head.appendChild(ytScript);
+
+window.onYouTubeIframeAPIReady = function() {
+  ytReady = true;
+  AUDIO_ZONES.forEach((z, i) => {
+    const div = document.createElement('div');
+    div.id = 'ytp' + i;
+    document.getElementById('ytPlayers').appendChild(div);
+    ytPlayers[i] = new YT.Player('ytp' + i, {
+      height: '1', width: '1',
+      videoId: z.id,
+      playerVars: { autoplay: 0, loop: 1, playlist: z.id, controls: 0 },
+      events: {
+        onReady: function(e) {
+          e.target.setVolume(0);
+          e.target.playVideo();
+        }
+      }
+    });
+  });
+};
+
+function updateSpatialAudio() {
+  if (!ytReady) return;
+  let loudest = { idx: -1, vol: 0, title: '' };
+
+  AUDIO_ZONES.forEach((z, i) => {
+    const p = ytPlayers[i];
+    if (!p || !p.setVolume) return;
+    const dist = playerPos.distanceTo(z.pos);
+    const t = Math.max(0, 1 - dist / z.radius);
+    const vol = Math.round(t * t * 100); /* quadratic falloff */
+    p.setVolume(muted ? 0 : vol);
+    if (vol > loudest.vol) { loudest = { idx: i, vol, title: z.title }; }
+  });
+
+  const np = document.getElementById('nowPlaying');
+  if (loudest.vol > 5) {
+    np.textContent = '♪ NOW PLAYING: ' + loudest.title;
+    np.classList.add('show');
+  } else {
+    np.classList.remove('show');
+  }
 }
 
-/* ── Scroll tracking ─────────────────────────────────────── */
-let scrollY = 0;
-let targetScrollY = 0;
-window.addEventListener('scroll', () => { targetScrollY = window.scrollY; });
+function toggleMute() {
+  muted = !muted;
+  document.getElementById('audioIndicator').textContent = 'SOUND: ' + (muted ? 'OFF' : 'ON');
+}
 
-/* ── Mouse parallax ──────────────────────────────────────── */
-let mouseX = 0, mouseY = 0;
-window.addEventListener('mousemove', e => {
-  mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
-  mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+/* ═══════════════════════════════════════════════════════════
+   THREE.JS SETUP
+   ═══════════════════════════════════════════════════════════ */
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050204);
+  scene.fog = new THREE.Fog(0x050204, 5, 35);
+
+  camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.copy(playerPos);
+
+  renderer = new THREE.WebGLRenderer({ antialias: false }); /* no AA for retro look */
+  renderer.setPixelRatio(1); /* force low res */
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.toneMapping = THREE.NoToneMapping;
+  document.body.prepend(renderer.domElement);
+
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  /* ── Toon gradient texture ──────────────────────────── */
+  const toonColors = new Uint8Array([40, 80, 140, 200, 255]);
+  const gradientMap = new THREE.DataTexture(toonColors, toonColors.length, 1, THREE.RedFormat);
+  gradientMap.minFilter = THREE.NearestFilter;
+  gradientMap.magFilter = THREE.NearestFilter;
+  gradientMap.needsUpdate = true;
+
+  function toonMat(color, emissive) {
+    return new THREE.MeshToonMaterial({
+      color,
+      gradientMap,
+      emissive: emissive || 0x000000,
+      emissiveIntensity: emissive ? 0.3 : 0,
+    });
+  }
+
+  /* ── Lighting — theatrical spots ────────────────────── */
+  scene.add(new THREE.AmbientLight(0x1a0a08, 0.6));
+
+  const spot1 = new THREE.SpotLight(0xc9a84c, 60, 30, PI * 0.4, 0.7, 1.5);
+  spot1.position.set(0, 12, -6);
+  spot1.target.position.set(0, 0, -8);
+  scene.add(spot1); scene.add(spot1.target);
+
+  const spot2 = new THREE.SpotLight(0x8b2020, 30, 25, PI * 0.5, 0.6, 1.5);
+  spot2.position.set(-6, 10, 0);
+  scene.add(spot2);
+
+  const spot3 = new THREE.SpotLight(0x3a1540, 20, 25, PI * 0.5, 0.6, 1.5);
+  spot3.position.set(6, 10, 0);
+  scene.add(spot3);
+
+  /* floor light glow */
+  for (let i = 0; i < 6; i++) {
+    const fl = new THREE.PointLight(0xc9a84c, 2, 6);
+    fl.position.set((i - 2.5) * 3, 0.1, -9);
+    scene.add(fl);
+  }
+
+  /* ── FLOOR ──────────────────────────────────────────── */
+  const floorGeo = new THREE.PlaneGeometry(24, 40);
+  const floorMat = toonMat(0x1a0c08);
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -PI / 2;
+  floor.position.set(0, 0, 0);
+  floor.name = 'floor';
+  scene.add(floor);
+
+  /* checkered pattern on floor */
+  const tileGeo = new THREE.PlaneGeometry(2, 2);
+  const tileMat1 = toonMat(0x0d0806);
+  const tileMat2 = toonMat(0x1a0f0a);
+  for (let x = -5; x <= 5; x++) {
+    for (let z = -9; z <= 9; z++) {
+      const mat = (x + z) % 2 === 0 ? tileMat1 : tileMat2;
+      const tile = new THREE.Mesh(tileGeo, mat);
+      tile.rotation.x = -PI / 2;
+      tile.position.set(x * 2, 0.01, z * 2);
+      tile.name = 'floor';
+      scene.add(tile);
+    }
+  }
+
+  /* ── WALLS ──────────────────────────────────────────── */
+  const wallMat = toonMat(0x12080a);
+  const wallMatDark = toonMat(0x0a0506);
+
+  /* back wall (stage wall) */
+  const backWall = new THREE.Mesh(new THREE.PlaneGeometry(24, 10), wallMat);
+  backWall.position.set(0, 5, -10);
+  scene.add(backWall);
+
+  /* side walls */
+  const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 10), wallMat);
+  leftWall.rotation.y = PI / 2;
+  leftWall.position.set(-12, 5, 0);
+  scene.add(leftWall);
+
+  const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(40, 10), wallMat);
+  rightWall.rotation.y = -PI / 2;
+  rightWall.position.set(12, 5, 0);
+  scene.add(rightWall);
+
+  /* ceiling */
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(24, 40), wallMatDark);
+  ceiling.rotation.x = PI / 2;
+  ceiling.position.set(0, 10, 0);
+  scene.add(ceiling);
+
+  /* back wall behind player */
+  const rearWall = new THREE.Mesh(new THREE.PlaneGeometry(24, 10), wallMatDark);
+  rearWall.rotation.y = PI;
+  rearWall.position.set(0, 5, 20);
+  scene.add(rearWall);
+
+  /* ── STAGE ──────────────────────────────────────────── */
+  const stageGeo = new THREE.BoxGeometry(16, 1.2, 6);
+  const stageMat = toonMat(0x2a1510);
+  const stage = new THREE.Mesh(stageGeo, stageMat);
+  stage.position.set(0, 0.6, -7);
+  scene.add(stage);
+
+  /* stage front edge gold trim */
+  const trimGeo = new THREE.BoxGeometry(16.2, 0.15, 0.15);
+  const trimMat = toonMat(0xc9a84c, 0xc9a84c);
+  const trim = new THREE.Mesh(trimGeo, trimMat);
+  trim.position.set(0, 1.2, -4.05);
+  scene.add(trim);
+
+  /* ── CURTAINS (low-poly flat planes) ────────────────── */
+  const curtainMat = toonMat(0x6b0a0a);
+  function makeCurtain(x, scaleX) {
+    const geo = new THREE.PlaneGeometry(4, 9, 8, 16);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const px = pos.getX(i), py = pos.getY(i);
+      pos.setZ(i, Math.sin(px * 3 + py * 0.5) * 0.4);
+    }
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, curtainMat);
+    m.position.set(x, 5.5, -9.8);
+    m.scale.x = scaleX;
+    scene.add(m);
+    return m;
+  }
+  const curtL = makeCurtain(-6, 1);
+  const curtR = makeCurtain(6, -1);
+
+  /* curtain pelmet */
+  const pelmetGeo = new THREE.BoxGeometry(16, 1.5, 0.5);
+  const pelmetMat = toonMat(0x8b1515);
+  const pelmet = new THREE.Mesh(pelmetGeo, pelmetMat);
+  pelmet.position.set(0, 9.5, -9.5);
+  scene.add(pelmet);
+
+  /* gold trim on pelmet */
+  const pelTrimGeo = new THREE.BoxGeometry(16.2, 0.1, 0.55);
+  const pelTrim = new THREE.Mesh(pelTrimGeo, trimMat);
+  pelTrim.position.set(0, 8.8, -9.5);
+  scene.add(pelTrim);
+
+  /* ── COLUMNS ────────────────────────────────────────── */
+  const colGeo = new THREE.CylinderGeometry(0.3, 0.35, 10, 6);
+  const colMat = toonMat(0x2a1a12);
+  const colCapGeo = new THREE.CylinderGeometry(0.5, 0.3, 0.4, 6);
+  const colCapMat = toonMat(0xc9a84c, 0xc9a84c);
+  for (let side of [-1, 1]) {
+    for (let z = -6; z <= 10; z += 4) {
+      const col = new THREE.Mesh(colGeo, colMat);
+      col.position.set(side * 10, 5, z);
+      scene.add(col);
+      const cap = new THREE.Mesh(colCapGeo, colCapMat);
+      cap.position.set(side * 10, 10, z);
+      scene.add(cap);
+      const base = new THREE.Mesh(colCapGeo, colCapMat);
+      base.position.set(side * 10, 0.2, z);
+      scene.add(base);
+    }
+  }
+
+  /* ── SEATS (simple low-poly benches) ────────────────── */
+  const seatGeo = new THREE.BoxGeometry(1.2, 0.8, 0.8);
+  const seatBackGeo = new THREE.BoxGeometry(1.2, 0.6, 0.15);
+  const seatMat = toonMat(0x3a1818);
+  for (let row = 0; row < 4; row++) {
+    for (let col = -3; col <= 3; col++) {
+      if (Math.abs(col) <= 1 && row <= 1) continue; /* aisle */
+      const s = new THREE.Mesh(seatGeo, seatMat);
+      s.position.set(col * 1.8, 0.4, 4 + row * 2.2);
+      scene.add(s);
+      const back = new THREE.Mesh(seatBackGeo, seatMat);
+      back.position.set(col * 1.8, 0.9, 4 + row * 2.2 + 0.33);
+      scene.add(back);
+    }
+  }
+
+  /* ── MARQUEE SIGN (entrance) ────────────────────────── */
+  const marqueeGeo = new THREE.BoxGeometry(8, 2, 0.3);
+  const marqueeMat = toonMat(0x1a0a08);
+  const marquee = new THREE.Mesh(marqueeGeo, marqueeMat);
+  marquee.position.set(0, 7, 16);
+  scene.add(marquee);
+  /* marquee lights */
+  for (let i = -8; i <= 8; i++) {
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 4, 4), toonMat(0xc9a84c, 0xc9a84c));
+    bulb.position.set(i * 0.45, 7 + (i % 2 === 0 ? 1.05 : -1.05), 15.85);
+    scene.add(bulb);
+  }
+
+  /* ── CHANDELIER ─────────────────────────────────────── */
+  const chandGroup = new THREE.Group();
+  chandGroup.position.set(0, 9, 2);
+  const armGeo = new THREE.CylinderGeometry(0.04, 0.04, 2, 4);
+  const armMat = toonMat(0xc9a84c, 0xc9a84c);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * TAU;
+    const arm = new THREE.Mesh(armGeo, armMat);
+    arm.position.set(Math.cos(a) * 1, -0.5, Math.sin(a) * 1);
+    arm.rotation.z = Math.cos(a) * 0.5;
+    arm.rotation.x = Math.sin(a) * 0.5;
+    chandGroup.add(arm);
+    const crystal = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.15, 0),
+      toonMat(0xc9a84c, 0xc9a84c)
+    );
+    crystal.position.set(Math.cos(a) * 1.8, -1.2, Math.sin(a) * 1.8);
+    chandGroup.add(crystal);
+    /* candle light */
+    const cl = new THREE.PointLight(0xc9a84c, 1.5, 6);
+    cl.position.copy(crystal.position).y += 0.3;
+    chandGroup.add(cl);
+  }
+  scene.add(chandGroup);
+
+  /* ── POSTER FRAMES (interactable) ───────────────────── */
+  function makeFrame(x, y, z, rotY, w, h, color, articleKey, label) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    group.rotation.y = rotY;
+
+    /* frame border */
+    const frameGeo = new THREE.BoxGeometry(w + 0.2, h + 0.2, 0.1);
+    const frameMat = toonMat(0xc9a84c, 0xc9a84c);
+    group.add(new THREE.Mesh(frameGeo, frameMat));
+
+    /* inner canvas */
+    const innerGeo = new THREE.PlaneGeometry(w, h);
+    const innerMat = toonMat(color);
+    const inner = new THREE.Mesh(innerGeo, innerMat);
+    inner.position.z = 0.06;
+    group.add(inner);
+
+    /* text label using a simple plane with color */
+    /* glow indicator */
+    const glowGeo = new THREE.PlaneGeometry(w + 0.6, h + 0.6);
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0xc9a84c, transparent: true, opacity: 0.05 });
+    const glow = new THREE.Mesh(glowGeo, glowMat);
+    glow.position.z = -0.05;
+    group.add(glow);
+
+    scene.add(group);
+
+    /* register as interactable */
+    inner.userData = { type: 'article', key: articleKey, label, glow: glowMat, group };
+    interactables.push(inner);
+    return group;
+  }
+
+  /* LEFT WALL articles */
+  makeFrame(-11.8, 4, 6, PI / 2, 2.5, 3, 0x1a1008, 'origin', 'THE GENESIS — CLICK TO READ');
+  makeFrame(-11.8, 4, 1, PI / 2, 2.5, 3, 0x180a0a, 'audacity', 'THE AUDACITY — CLICK TO READ');
+  makeFrame(-11.8, 4, -4, PI / 2, 2.5, 3, 0x0a0a18, 'martyrdom', 'THE ONLY DIFFERENCE... — CLICK TO READ');
+
+  /* RIGHT WALL articles */
+  makeFrame(11.8, 4, 6, -PI / 2, 2.5, 3, 0x18100a, 'album', 'THE RECORD — CLICK TO READ');
+  makeFrame(11.8, 4, 1, -PI / 2, 2.5, 3, 0x100a18, 'pitchfork', 'PITCHFORK 1.5/10 — CLICK TO READ');
+  makeFrame(11.8, 4, -4, -PI / 2, 2.5, 3, 0x0a1808, 'lying', 'LYING IS THE MOST FUN... — CLICK TO READ');
+
+  /* STAGE WALL (back) articles */
+  makeFrame(-4, 5, -9.8, 0, 3, 3.5, 0x1a0808, 'sins', '♪ I WRITE SINS — CLICK TO READ');
+  makeFrame(4, 5, -9.8, 0, 3, 3.5, 0x0a0a14, 'legacy', 'THE LEGACY — CLICK TO READ');
+
+  /* STAGE center piece */
+  makeFrame(0, 4, -9.8, 0, 4, 4.5, 0x200808, 'betterifyoudo', '♪ BUT IT\'S BETTER IF YOU DO — CLICK');
+
+  /* REAR WALL */
+  makeFrame(0, 5, 19.8, PI, 5, 3, 0x14080a, 'buildgod', '♪ BUILD GOD, THEN WE\'LL TALK — CLICK');
+
+  /* ── FLOATING MASKS ─────────────────────────────────── */
+  window._masks = [];
+  const maskGeo = new THREE.SphereGeometry(0.5, 6, 4, 0, PI);
+  for (let i = 0; i < 8; i++) {
+    const mat = toonMat(new THREE.Color().setHSL(0.07 + Math.random() * 0.06, 0.4, 0.12 + Math.random() * 0.1));
+    const mask = new THREE.Mesh(maskGeo, mat);
+    const a = (i / 8) * TAU;
+    const r = 6 + Math.random() * 4;
+    mask.userData = { angle: a, r, speed: 0.01 + Math.random() * 0.02, yBase: 5 + Math.random() * 4 };
+    mask.scale.setScalar(0.5 + Math.random() * 0.8);
+    scene.add(mask);
+    window._masks.push(mask);
+  }
+
+  /* ── PARTICLES (dust, low count for retro feel) ─────── */
+  const pCount = 300;
+  const pGeo = new THREE.BufferGeometry();
+  const pPositions = new Float32Array(pCount * 3);
+  for (let i = 0; i < pCount; i++) {
+    pPositions[i * 3] = (Math.random() - 0.5) * 24;
+    pPositions[i * 3 + 1] = Math.random() * 10;
+    pPositions[i * 3 + 2] = (Math.random() - 0.5) * 40;
+  }
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+  const pMat = new THREE.PointsMaterial({ color: 0xc9a84c, size: 0.06, transparent: true, opacity: 0.4 });
+  window._particles = new THREE.Points(pGeo, pMat);
+  scene.add(window._particles);
+
+  /* ── FLOOR clickable plane (invisible, for navigation) ─ */
+  const navFloor = new THREE.Mesh(
+    new THREE.PlaneGeometry(22, 38),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  navFloor.rotation.x = -PI / 2;
+  navFloor.position.set(0, 0.02, 0);
+  navFloor.name = 'navfloor';
+  scene.add(navFloor);
+  interactables.push(navFloor);
+  navFloor.userData = { type: 'floor' };
+
+  /* store refs */
+  window._chandGroup = chandGroup;
+  window._curtL = curtL;
+  window._curtR = curtR;
+  window._spot1 = spot1;
+  window._spot2 = spot2;
+  window._spot3 = spot3;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INTERACTION
+   ═══════════════════════════════════════════════════════════ */
+function onPointerMove(e) {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+}
+
+function onPointerDown(e) {
+  if (articleOpen) return;
+  if (e.button !== 0) return;
+
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(interactables, false);
+  if (hits.length === 0) return;
+
+  const hit = hits[0];
+  const ud = hit.object.userData;
+
+  if (ud.type === 'floor') {
+    /* click to move */
+    const pt = hit.point;
+    targetPos.set(
+      THREE.MathUtils.clamp(pt.x, -10, 10),
+      1.6,
+      THREE.MathUtils.clamp(pt.z, -8, 18)
+    );
+    moving = true;
+  } else if (ud.type === 'article') {
+    openArticle(ud.key);
+  }
+}
+
+function openArticle(key) {
+  const a = ARTICLES[key];
+  if (!a) return;
+  document.getElementById('apTitle').textContent = a.title;
+  document.getElementById('apBody').innerHTML = a.body;
+  document.getElementById('articlePanel').classList.add('open');
+  articleOpen = true;
+}
+
+function closeArticle() {
+  document.getElementById('articlePanel').classList.remove('open');
+  articleOpen = false;
+}
+
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Escape') closeArticle();
 });
-
-/* ── Resize ──────────────────────────────────────────────── */
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+window.addEventListener('pointermove', onPointerMove);
+window.addEventListener('pointerdown', onPointerDown);
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-/* ── Animation loop ──────────────────────────────────────── */
-const clock = new THREE.Clock();
-
+/* ═══════════════════════════════════════════════════════════
+   ANIMATION LOOP
+   ═══════════════════════════════════════════════════════════ */
 function animate() {
   requestAnimationFrame(animate);
   const t = clock.getElapsedTime();
-  const dt = clock.getDelta();
+  const dt = Math.min(clock.getDelta(), 0.05);
 
-  /* smooth scroll */
-  scrollY += (targetScrollY - scrollY) * 0.08;
-  const scrollFrac = scrollY / (document.body.scrollHeight - window.innerHeight || 1);
+  /* ── keyboard look ────────────────────────────────── */
+  const lookSpeed = 1.5 * dt;
+  if (keys['KeyA'] || keys['ArrowLeft']) lookX -= lookSpeed;
+  if (keys['KeyD'] || keys['ArrowRight']) lookX += lookSpeed;
+  if (keys['KeyW'] || keys['ArrowUp']) lookY = Math.min(0.6, lookY + lookSpeed);
+  if (keys['KeyS'] || keys['ArrowDown']) lookY = Math.max(-0.6, lookY - lookSpeed);
 
-  /* camera — slow push through the theatre as you scroll */
-  camera.position.z = 8 - scrollFrac * 20;
-  camera.position.y = 2 + scrollFrac * 3;
-  camera.position.x = mouseX * 0.8;
-  camera.rotation.x = -mouseY * 0.05 - scrollFrac * 0.1;
-  camera.rotation.y = -mouseX * 0.05;
+  /* ── player movement (smooth lerp to target) ──────── */
+  if (moving) {
+    playerPos.lerp(targetPos, 3 * dt);
+    if (playerPos.distanceTo(targetPos) < 0.1) {
+      moving = false;
+      playerPos.copy(targetPos);
+    }
+    /* face movement direction */
+    const dir = new THREE.Vector3().subVectors(targetPos, playerPos);
+    if (dir.length() > 0.1) {
+      const targetAngle = Math.atan2(dir.x, dir.z);
+      lookX += (targetAngle - lookX) * 2 * dt;
+    }
+  }
 
-  /* chandelier sway */
-  chandelierGroup.rotation.y = Math.sin(t * 0.3) * 0.1;
-  chandelierGroup.rotation.z = Math.cos(t * 0.2) * 0.03;
-  chandelierGroup.children.forEach((c, i) => {
-    c.rotation.y = t * 0.5 + i;
-    c.material.emissiveIntensity = 0.3 + Math.sin(t * 2 + i * 0.5) * 0.3;
+  camera.position.copy(playerPos);
+  camera.position.y += Math.sin(t * 2) * 0.02; /* subtle breathing */
+  camera.rotation.set(lookY, -lookX, 0, 'YXZ');
+
+  /* ── hover detection ──────────────────────────────── */
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(interactables, false);
+  const prompt = document.getElementById('prompt');
+  const crosshair = document.getElementById('crosshair');
+  crosshair.style.display = 'block';
+
+  /* reset all glows */
+  interactables.forEach(obj => {
+    if (obj.userData.glow) obj.userData.glow.opacity = 0.05;
   });
 
+  if (hits.length > 0 && hits[0].object.userData.type === 'article') {
+    hoveredObj = hits[0].object;
+    document.body.style.cursor = 'pointer';
+    prompt.textContent = hoveredObj.userData.label;
+    prompt.classList.add('show');
+    crosshair.style.color = '#c9a84c';
+    if (hoveredObj.userData.glow) hoveredObj.userData.glow.opacity = 0.15;
+  } else if (hits.length > 0 && hits[0].object.userData.type === 'floor') {
+    hoveredObj = null;
+    document.body.style.cursor = 'crosshair';
+    prompt.textContent = 'CLICK TO WALK HERE';
+    prompt.classList.add('show');
+    crosshair.style.color = '#c9a84c40';
+  } else {
+    hoveredObj = null;
+    document.body.style.cursor = 'crosshair';
+    prompt.classList.remove('show');
+    crosshair.style.color = '#c9a84c40';
+  }
+
+  /* ── animate scene objects ────────────────────────── */
+  /* chandelier sway */
+  window._chandGroup.rotation.y = Math.sin(t * 0.4) * 0.08;
+  window._chandGroup.rotation.z = Math.cos(t * 0.3) * 0.02;
+
   /* masks orbit */
-  masks.forEach(m => {
-    m.userData.angle += m.userData.speed * 0.016;
+  window._masks.forEach(m => {
+    m.userData.angle += m.userData.speed * dt;
     m.position.x = Math.cos(m.userData.angle) * m.userData.r;
-    m.position.z = Math.sin(m.userData.angle) * m.userData.r - 10;
-    m.position.y = m.userData.yBase + Math.sin(t * 0.5 + m.userData.angle) * 1.5;
-    m.rotation.y = m.userData.angle + Math.PI;
-    m.rotation.x = Math.sin(t * 0.3 + m.userData.angle) * 0.3;
+    m.position.z = Math.sin(m.userData.angle) * m.userData.r;
+    m.position.y = m.userData.yBase + Math.sin(t * 0.5 + m.userData.angle) * 1;
+    m.rotation.y = m.userData.angle + PI;
   });
 
   /* particles drift */
-  const pPos = particles.geometry.attributes.position.array;
-  for (let i = 0; i < particleCount; i++) {
-    pPos[i * 3 + 1] -= 0.003;
-    pPos[i * 3] += Math.sin(t + i) * 0.001;
-    if (pPos[i * 3 + 1] < -3) pPos[i * 3 + 1] = 22;
+  const pp = window._particles.geometry.attributes.position.array;
+  for (let i = 0; i < pp.length / 3; i++) {
+    pp[i * 3 + 1] -= 0.003;
+    pp[i * 3] += Math.sin(t * 0.5 + i) * 0.001;
+    if (pp[i * 3 + 1] < 0) pp[i * 3 + 1] = 10;
   }
-  particles.geometry.attributes.position.needsUpdate = true;
-  particles.rotation.y = t * 0.02;
+  window._particles.geometry.attributes.position.needsUpdate = true;
 
-  /* petals fall */
-  petals.forEach(p => {
-    p.position.y -= p.userData.fallSpeed;
-    p.position.x += p.userData.drift + Math.sin(t + p.position.x) * 0.003;
-    p.rotation.x += p.userData.rotSpeed.x;
-    p.rotation.y += p.userData.rotSpeed.y;
-    p.rotation.z += p.userData.rotSpeed.z;
-    if (p.position.y < -4) {
-      p.position.y = 20 + Math.random() * 5;
-      p.position.x = (Math.random() - 0.5) * 30;
-    }
-  });
+  /* spots flicker */
+  window._spot1.intensity = 60 + Math.sin(t * 1.1) * 10;
+  window._spot2.intensity = 30 + Math.sin(t * 0.7 + 1) * 8;
+  window._spot3.intensity = 20 + Math.cos(t * 0.9 + 2) * 6;
 
-  /* spotlights pulse */
-  spot1.intensity = 15 + Math.sin(t * 0.7) * 3;
-  spot2.intensity = 8 + Math.sin(t * 0.5 + 1) * 2;
-  spot3.intensity = 6 + Math.cos(t * 0.6 + 2) * 2;
-  pointGold.intensity = 3 + Math.sin(t * 1.2) * 1;
-
-  /* curtain subtle animation */
-  const lPos = curtainL.geometry.attributes.position;
-  const rPos = curtainR.geometry.attributes.position;
-  for (let i = 0; i < lPos.count; i++) {
-    const y = lPos.getY(i);
-    const wave = Math.sin(y * 0.4 + t * 0.8) * 0.08;
-    lPos.setZ(i, Math.sin(lPos.getX(i) * 2 + y * 0.3) * 0.6 + wave);
-    rPos.setZ(i, Math.sin(rPos.getX(i) * 2 + y * 0.3) * 0.6 + wave);
-  }
-  lPos.needsUpdate = true;
-  rPos.needsUpdate = true;
+  /* ── spatial audio update ─────────────────────────── */
+  updateSpatialAudio();
 
   renderer.render(scene, camera);
 }
 
-/* ── Start ────────────────────────────────────────────────── */
-setTimeout(() => { document.getElementById('loader').classList.add('done'); }, 1800);
+/* ═══════════════════════════════════════════════════════════
+   LOADING
+   ═══════════════════════════════════════════════════════════ */
+let loadProgress = 0;
+const loadInterval = setInterval(() => {
+  loadProgress = Math.min(100, loadProgress + 2 + Math.random() * 5);
+  document.getElementById('loadBar').style.width = loadProgress + '%';
+  if (loadProgress >= 100) {
+    clearInterval(loadInterval);
+    document.getElementById('loader').addEventListener('click', startExperience);
+    document.querySelector('#loader p:last-child').textContent = '>>> CLICK TO ENTER THE THEATRE <<<';
+    document.querySelector('#loader p:last-child').style.color = '#c9a84c';
+  }
+}, 100);
+
+function startExperience() {
+  document.getElementById('loader').classList.add('done');
+  /* start all YouTube players */
+  if (ytReady) {
+    AUDIO_ZONES.forEach((z, i) => {
+      const p = ytPlayers[i];
+      if (p && p.playVideo) p.playVideo();
+    });
+  }
+}
+
+init();
 animate();
-
-/* ── Scroll-triggered panel fades ────────────────────────── */
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.style.opacity = '1';
-      e.target.style.transform = 'translateY(0)';
-    }
-  });
-}, { threshold: 0.15 });
-
-document.querySelectorAll('.panel').forEach(p => {
-  p.style.opacity = '0';
-  p.style.transform = 'translateY(40px)';
-  p.style.transition = 'opacity 1.2s ease, transform 1.2s ease';
-  observer.observe(p);
-});
-
 </script>
 </body>
 </html>

@@ -1,25 +1,27 @@
-# A Fever You Can't Sweat Out — The Legacy
+# A Fever You Can't Sweat Out — Enter The Theatre
 
-An immersive 3D web experience exploring the cultural impact of Panic! At The Disco's debut album *A Fever You Can't Sweat Out* (2005). Built with Three.js, styled after the vaudeville/burlesque aesthetic of the era.
+An immersive 3D point-and-click experience exploring the cultural impact of Panic! At The Disco's debut album (2005). Walk through a low-poly vaudeville theatre with 2005 Flash-era aesthetics, spatial audio, and interactive content.
 
 ## Run it
 
-[Open the Experience](https://antoinefortin.github.io/Aideas/FeverLegacy/)
+[Enter the Theatre](https://antoinefortin.github.io/Aideas/FeverLegacy/)
 
-## What it covers
+## Features
 
-- The origin story: four Las Vegas teenagers and a LiveJournal demo
-- The album's unique split structure (electronic vs. vaudeville)
-- The audacity of bringing a 1920s cabaret aesthetic to the emo scene
-- "I Write Sins Not Tragedies" and its cultural dominance
-- Deep cuts and key tracks with embedded YouTube videos
-- The infamous Pitchfork 1.5/10 review vs. double-platinum sales
-- Timeline of cultural impact from 2005 to the 20th anniversary
+- **Point-and-click navigation**: click the floor to walk, click posters to read articles
+- **2005 Flash aesthetic**: flat toon shaders, low pixel ratio, scanline overlay, CRT vignette, Press Start 2P font
+- **Full 3D theatre**: stage, velvet curtains, chandelier, columns, checkered floor, theatre seats, floating masks, marquee lights
+- **10 interactive articles**: origin story, album structure, vaudeville aesthetic, Pitchfork 1.5/10, I Write Sins, key tracks, legacy timeline
+- **Embedded YouTube videos** in article panels for key tracks
+- **Spatial audio**: 5 YouTube audio zones with distance-based volume (quadratic falloff). Walk closer to hear the song louder.
+- **Now Playing indicator** shows which track is loudest based on your position
+- **Keyboard controls**: WASD/arrows to look around, ESC to close articles
+- **Particle dust**, orbiting masks, flickering spotlights, chandelier sway
 
-## Built with
+## Controls
 
-- Three.js for the 3D theatre environment (curtains, chandelier, floating masks, falling petals, particle dust)
-- Scroll-driven camera movement through the virtual stage
-- Mouse parallax
-- Period-appropriate typography (Playfair Display, Special Elite)
-- Film grain and vignette overlays for a vintage feel
+- **Click floor** — walk to that point
+- **Click poster/frame** — open article with embedded video
+- **WASD / Arrow keys** — look around
+- **ESC** — close article panel
+- **Click "SOUND"** — toggle mute
