@@ -93,6 +93,47 @@ canvas{display:block;image-rendering:pixelated}
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
+/* ═══════════════════════════════════════════════════════════
+   LOADER — runs independently of Three.js
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+  let loadProgress = 0, loadDone = false;
+  const enterMsg = document.getElementById('enterMsg');
+  const loadInterval = setInterval(() => {
+    loadProgress = Math.min(100, loadProgress + 2 + Math.random() * 5);
+    document.getElementById('loadBar').style.width = loadProgress + '%';
+    if (loadProgress >= 100) {
+      clearInterval(loadInterval);
+      loadDone = true;
+      enterMsg.textContent = '>>> CLICK ANYWHERE TO ENTER <<<';
+      enterMsg.style.color = '#c9a84c';
+      enterMsg.style.cursor = 'pointer';
+      document.getElementById('loader').style.cursor = 'pointer';
+      console.log('[FeverLegacy] Load complete, waiting for click');
+    }
+  }, 100);
+
+  function tryEnter() {
+    console.log('[FeverLegacy] tryEnter called, loadDone=', loadDone, 'window._feverStarted=', window._feverStarted);
+    if (!loadDone || window._feverStarted) return;
+    window._feverStarted = true;
+    document.removeEventListener('click', tryEnter, true);
+    document.removeEventListener('pointerdown', tryEnter, true);
+    document.removeEventListener('touchstart', tryEnter, true);
+    document.getElementById('loader').classList.add('done');
+    console.log('[FeverLegacy] Starting experience');
+    if (typeof window._startExperience === 'function') {
+      window._startExperience();
+    }
+  }
+  /* use capture phase so nothing can stop these */
+  document.addEventListener('click', tryEnter, true);
+  document.addEventListener('pointerdown', tryEnter, true);
+  document.addEventListener('touchstart', tryEnter, true);
+  console.log('[FeverLegacy] Loader script initialized');
+})();
+</script>
+<script>
 'use strict';
 
 /* ═══════════════════════════════════════════════════════════
@@ -109,6 +150,11 @@ let hoveredObj = null;
 let muted = false;
 let articleOpen = false;
 let started = false;
+window._feverStarted = false;
+window._startExperience = function() {
+  started = true;
+  initYouTubePlayers();
+};
 const interactables = [];
 const clock = new THREE.Clock();
 const keys = {};
@@ -801,46 +847,7 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   LOADING
-   ═══════════════════════════════════════════════════════════ */
-let loadProgress = 0;
-let loadDone = false;
-const enterMsg = document.getElementById('enterMsg');
-const loadInterval = setInterval(() => {
-  loadProgress = Math.min(100, loadProgress + 2 + Math.random() * 5);
-  document.getElementById('loadBar').style.width = loadProgress + '%';
-  if (loadProgress >= 100) {
-    clearInterval(loadInterval);
-    loadDone = true;
-    enterMsg.textContent = '>>> CLICK ANYWHERE TO ENTER <<<';
-    enterMsg.style.color = '#c9a84c';
-    enterMsg.style.cursor = 'pointer';
-    document.getElementById('loader').style.cursor = 'pointer';
-  }
-}, 100);
-
-/* multiple event types to ensure the enter click works everywhere */
-function tryEnter() {
-  if (!loadDone || started) return;
-  startExperience();
-}
-document.addEventListener('click', tryEnter);
-document.addEventListener('pointerdown', tryEnter);
-document.addEventListener('touchstart', tryEnter);
-document.getElementById('loader').onclick = tryEnter;
-
-function startExperience() {
-  if (started) return;
-  started = true;
-  document.removeEventListener('click', tryEnter);
-  document.removeEventListener('pointerdown', tryEnter);
-  document.removeEventListener('touchstart', tryEnter);
-  document.getElementById('loader').onclick = null;
-  document.getElementById('loader').classList.add('done');
-  /* create YouTube players NOW inside user gesture so browsers allow autoplay */
-  initYouTubePlayers();
-}
+/* loading is handled by the separate loader script above */
 
 init();
 animate();
