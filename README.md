@@ -3,6 +3,8 @@ A place where I just put code of stuff I made with AI
 
 ## Projects
 
+- [SilenceCut](Silencer/) — Remove silence from audio recordings directly in your browser. No uploads, no server. [▶ Run it](https://antoinefortin.github.io/Aideas/Silencer/)
+- [AudioDock](AudioDock/) — Windows C#/WPF app for batch-downloading YouTube audio as MP3 via yt-dlp and FFmpeg.
 - [Tabtone](tabtone/) — One-click Chrome tab audio recorder with local MP3 encoding and automatic filenames.
 - [Tabflow](tabflow/) — Égaliseur par onglet, volume booster et effets audio locaux pour Chrome.
 - [three.js environment experiments](threejs-environment-experiments/) — interactive three.js scenes where something leaves a trace in its environment:

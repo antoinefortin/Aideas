@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "AudioDock (CMake Debug)", "type": "coreclr", "request": "launch",
+      "preLaunchTask": "AudioDock: build Debug",
+      "program": "${workspaceFolder}/build/debug/app/AudioDock.dll",
+      "cwd": "${workspaceFolder}", "console": "internalConsole",
+      "stopAtEntry": false
+    }
+  ]
+}

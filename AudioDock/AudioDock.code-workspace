@@ -1,0 +1,7 @@
+{
+  "folders": [{ "path": "." }],
+  "settings": { "cmake.useCMakePresets": "always" },
+  "extensions": {
+    "recommendations": ["ms-dotnettools.csharp", "ms-dotnettools.csdevkit", "ms-vscode.cmake-tools"]
+  }
+}
