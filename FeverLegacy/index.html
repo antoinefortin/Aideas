@@ -68,7 +68,7 @@ canvas{display:block;image-rendering:pixelated}
 <h1>A FEVER YOU CAN'T<br>SWEAT OUT</h1>
 <p>LOADING THEATRE ASSETS...</p>
 <div class="bar-wrap"><div class="bar" id="loadBar"></div></div>
-<p style="margin-top:20px;font-size:13px;color:#444">CLICK ANYWHERE TO ENTER &middot; 2005</p>
+<p id="enterMsg" style="margin-top:20px;font-size:13px;color:#444">LOADING...</p>
 </div>
 
 <div id="hud">
@@ -232,14 +232,22 @@ const AUDIO_ZONES = [
    ═══════════════════════════════════════════════════════════ */
 const ytPlayers = {};
 let ytReady = false;
+let ytApiLoaded = false;
 
-/* load YT API */
+/* load YT API script (just load the lib, don't create players yet) */
 const ytScript = document.createElement('script');
 ytScript.src = 'https://www.youtube.com/iframe_api';
 document.head.appendChild(ytScript);
 
 window.onYouTubeIframeAPIReady = function() {
-  ytReady = true;
+  ytApiLoaded = true;
+  /* don't create players here — wait for user click gesture */
+};
+
+/* called ONLY from user click (startExperience) so browser allows playback */
+function initYouTubePlayers() {
+  if (!ytApiLoaded || ytReady) return;
+  let readyCount = 0;
   AUDIO_ZONES.forEach((z, i) => {
     const div = document.createElement('div');
     div.id = 'ytp' + i;
@@ -247,16 +255,24 @@ window.onYouTubeIframeAPIReady = function() {
     ytPlayers[i] = new YT.Player('ytp' + i, {
       height: '1', width: '1',
       videoId: z.id,
-      playerVars: { autoplay: 0, loop: 1, playlist: z.id, controls: 0 },
+      playerVars: { autoplay: 1, loop: 1, playlist: z.id, controls: 0, fs: 0, modestbranding: 1 },
       events: {
         onReady: function(e) {
           e.target.setVolume(0);
           e.target.playVideo();
+          readyCount++;
+          if (readyCount >= AUDIO_ZONES.length) ytReady = true;
+        },
+        onStateChange: function(e) {
+          /* if video ends, restart (backup for loop) */
+          if (e.data === YT.PlayerState.ENDED) e.target.playVideo();
         }
       }
     });
   });
-};
+  /* set ytReady after a timeout fallback in case some players are slow */
+  setTimeout(() => { ytReady = true; }, 3000);
+}
 
 function updateSpatialAudio() {
   if (!ytReady) return;
@@ -787,26 +803,25 @@ function animate() {
    LOADING
    ═══════════════════════════════════════════════════════════ */
 let loadProgress = 0;
+const enterMsg = document.getElementById('enterMsg');
 const loadInterval = setInterval(() => {
   loadProgress = Math.min(100, loadProgress + 2 + Math.random() * 5);
   document.getElementById('loadBar').style.width = loadProgress + '%';
   if (loadProgress >= 100) {
     clearInterval(loadInterval);
-    document.getElementById('loader').addEventListener('click', startExperience);
-    document.querySelector('#loader p:last-child').textContent = '>>> CLICK TO ENTER THE THEATRE <<<';
-    document.querySelector('#loader p:last-child').style.color = '#c9a84c';
+    enterMsg.textContent = '>>> CLICK ANYWHERE TO ENTER THE THEATRE <<<';
+    enterMsg.style.color = '#c9a84c';
+    enterMsg.style.cursor = 'pointer';
+    /* listen on the whole loader overlay */
+    document.getElementById('loader').style.cursor = 'pointer';
+    document.getElementById('loader').addEventListener('click', startExperience, { once: true });
   }
 }, 100);
 
 function startExperience() {
   document.getElementById('loader').classList.add('done');
-  /* start all YouTube players */
-  if (ytReady) {
-    AUDIO_ZONES.forEach((z, i) => {
-      const p = ytPlayers[i];
-      if (p && p.playVideo) p.playVideo();
-    });
-  }
+  /* create YouTube players NOW inside user gesture so browsers allow autoplay */
+  initYouTubePlayers();
 }
 
 init();
