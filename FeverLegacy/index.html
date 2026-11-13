@@ -401,7 +401,7 @@ function toggleMute() {
 function init() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x050204);
-  scene.fog = new THREE.Fog(0x050204, 5, 35);
+  scene.fog = new THREE.Fog(0x050204, 8, 45);
 
   camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 100);
   camera.position.copy(playerPos);
@@ -432,25 +432,43 @@ function init() {
   }
 
   /* ── Lighting — theatrical spots ────────────────────── */
-  scene.add(new THREE.AmbientLight(0x1a0a08, 0.6));
+  scene.add(new THREE.AmbientLight(0x2a1a10, 1.2));
 
-  const spot1 = new THREE.SpotLight(0xc9a84c, 60, 30, PI * 0.4, 0.7, 1.5);
+  const spot1 = new THREE.SpotLight(0xc9a84c, 80, 35, PI * 0.4, 0.6, 1.2);
   spot1.position.set(0, 12, -6);
   spot1.target.position.set(0, 0, -8);
   scene.add(spot1); scene.add(spot1.target);
 
-  const spot2 = new THREE.SpotLight(0x8b2020, 30, 25, PI * 0.5, 0.6, 1.5);
+  const spot2 = new THREE.SpotLight(0x8b2020, 50, 30, PI * 0.5, 0.5, 1.2);
   spot2.position.set(-6, 10, 0);
   scene.add(spot2);
 
-  const spot3 = new THREE.SpotLight(0x3a1540, 20, 25, PI * 0.5, 0.6, 1.5);
+  const spot3 = new THREE.SpotLight(0x3a1540, 40, 30, PI * 0.5, 0.5, 1.2);
   spot3.position.set(6, 10, 0);
   scene.add(spot3);
 
+  /* center overhead light */
+  const centerLight = new THREE.PointLight(0xc9a84c, 15, 20);
+  centerLight.position.set(0, 8, 5);
+  scene.add(centerLight);
+
+  /* wall wash lights */
+  const wallWashL = new THREE.PointLight(0x8b4020, 8, 15);
+  wallWashL.position.set(-10, 5, 5);
+  scene.add(wallWashL);
+  const wallWashR = new THREE.PointLight(0x402060, 8, 15);
+  wallWashR.position.set(10, 5, 5);
+  scene.add(wallWashR);
+
+  /* rear area light */
+  const rearLight = new THREE.PointLight(0xc9a84c, 6, 15);
+  rearLight.position.set(0, 6, 14);
+  scene.add(rearLight);
+
   /* floor light glow */
-  for (let i = 0; i < 6; i++) {
-    const fl = new THREE.PointLight(0xc9a84c, 2, 6);
-    fl.position.set((i - 2.5) * 3, 0.1, -9);
+  for (let i = 0; i < 8; i++) {
+    const fl = new THREE.PointLight(0xc9a84c, 3, 8);
+    fl.position.set((i - 3.5) * 2.5, 0.1, -9);
     scene.add(fl);
   }
 
@@ -629,6 +647,111 @@ function init() {
   }
   scene.add(chandGroup);
 
+  /* ── POSTER COVER ART (Canvas2D textures) ─────────── */
+  const POSTER_STYLES = {
+    origin:       { bg: '#1a0c04', accent: '#c9a84c', icon: '★', subtitle: 'LAS VEGAS 2004' },
+    audacity:     { bg: '#2a0808', accent: '#c9a84c', icon: '🎭', subtitle: 'VAUDEVILLE × EMO' },
+    camisado:     { bg: '#0a0a1a', accent: '#6b8aff', icon: '⚡', subtitle: 'THE STRAITJACKET SONG' },
+    myspace:      { bg: '#0a1a1a', accent: '#00aaff', icon: '◈', subtitle: 'HOW THEY BROKE' },
+    album:        { bg: '#1a1008', accent: '#c9a84c', icon: '◉', subtitle: '$11,000 · 3.5 WEEKS' },
+    pitchfork:    { bg: '#1a0404', accent: '#ff4444', icon: '1.5', subtitle: 'OUT OF 10' },
+    timetodance:  { bg: '#140a18', accent: '#aa66ff', icon: '♦', subtitle: 'PALAHNIUK ON THE FLOOR' },
+    intermission: { bg: '#0a0a0a', accent: '#888', icon: '—', subtitle: 'SIDE A → SIDE B' },
+    sins:         { bg: '#2a0404', accent: '#ff6644', icon: '♪', subtitle: 'THE ANTHEM' },
+    legacy:       { bg: '#0a0a14', accent: '#c9a84c', icon: '∞', subtitle: '2005 → FOREVER' },
+    betterifyoudo:{ bg: '#200808', accent: '#c9a84c', icon: '♫', subtitle: 'THE VAUDEVILLE TURN' },
+    buildgod:     { bg: '#14080a', accent: '#c9a84c', icon: '✦', subtitle: 'THE CLOSING CURTAIN' },
+    london:       { bg: '#0a180a', accent: '#66cc66', icon: '£', subtitle: '15 WORDS OF REBELLION' },
+    martyrdom:    { bg: '#180808', accent: '#ff8844', icon: '✝', subtitle: 'THE LEAD SINGLE' },
+    lying:        { bg: '#08180a', accent: '#88ccaa', icon: '♡', subtitle: 'SIDE A CROWN JEWEL' },
+  };
+
+  function makePosterTexture(articleKey, w, h) {
+    const c = document.createElement('canvas');
+    const px = 256, py = Math.round(px * (h / w));
+    c.width = px; c.height = py;
+    const ctx = c.getContext('2d');
+    const style = POSTER_STYLES[articleKey] || { bg: '#111', accent: '#c9a84c', icon: '?', subtitle: '' };
+    const article = ARTICLES[articleKey];
+    const title = article ? article.title : articleKey.toUpperCase();
+
+    /* background */
+    ctx.fillStyle = style.bg;
+    ctx.fillRect(0, 0, px, py);
+
+    /* decorative border */
+    ctx.strokeStyle = style.accent;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(8, 8, px - 16, py - 16);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(14, 14, px - 28, py - 28);
+
+    /* corner ornaments */
+    ctx.fillStyle = style.accent;
+    const cs = 6;
+    [[18, 18], [px - 18, 18], [18, py - 18], [px - 18, py - 18]].forEach(([cx, cy]) => {
+      ctx.fillRect(cx - cs/2, cy - cs/2, cs, cs);
+    });
+
+    /* big icon/symbol */
+    ctx.fillStyle = style.accent;
+    ctx.font = 'bold 48px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.globalAlpha = 0.3;
+    ctx.fillText(style.icon, px / 2, py * 0.35);
+    ctx.globalAlpha = 1;
+
+    /* title text — word wrap */
+    ctx.fillStyle = style.accent;
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    const words = title.split(' ');
+    let lines = [], line = '';
+    const maxW = px - 44;
+    words.forEach(word => {
+      const test = line ? line + ' ' + word : word;
+      if (ctx.measureText(test).width > maxW) {
+        if (line) lines.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
+    });
+    if (line) lines.push(line);
+    const lineH = 16, startY = py * 0.55;
+    lines.forEach((l, i) => {
+      ctx.fillText(l, px / 2, startY + i * lineH);
+    });
+
+    /* subtitle */
+    ctx.fillStyle = style.accent;
+    ctx.globalAlpha = 0.6;
+    ctx.font = '10px monospace';
+    ctx.fillText(style.subtitle, px / 2, py - 28);
+    ctx.globalAlpha = 1;
+
+    /* horizontal rule */
+    ctx.strokeStyle = style.accent;
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    ctx.moveTo(30, py * 0.48);
+    ctx.lineTo(px - 30, py * 0.48);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    /* scanline effect */
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    for (let y = 0; y < py; y += 3) {
+      ctx.fillRect(0, y, px, 1);
+    }
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.minFilter = THREE.NearestFilter;
+    tex.magFilter = THREE.NearestFilter;
+    return tex;
+  }
+
   /* ── POSTER FRAMES (interactable) ───────────────────── */
   function makeFrame(x, y, z, rotY, w, h, color, articleKey, label) {
     const group = new THREE.Group();
@@ -640,14 +763,14 @@ function init() {
     const frameMat = toonMat(0xc9a84c, 0xc9a84c);
     group.add(new THREE.Mesh(frameGeo, frameMat));
 
-    /* inner canvas */
+    /* inner canvas with poster texture */
     const innerGeo = new THREE.PlaneGeometry(w, h);
-    const innerMat = toonMat(color);
+    const posterTex = makePosterTexture(articleKey, w, h);
+    const innerMat = new THREE.MeshBasicMaterial({ map: posterTex });
     const inner = new THREE.Mesh(innerGeo, innerMat);
     inner.position.z = 0.06;
     group.add(inner);
 
-    /* text label using a simple plane with color */
     /* glow indicator */
     const glowGeo = new THREE.PlaneGeometry(w + 0.6, h + 0.6);
     const glowMat = new THREE.MeshBasicMaterial({ color: 0xc9a84c, transparent: true, opacity: 0.05 });
