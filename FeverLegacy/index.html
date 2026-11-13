@@ -695,12 +695,14 @@ function onPointerMove(e) {
 }
 
 function onPointerDown(e) {
+  console.log('[FeverLegacy] pointerDown: started=', started, 'articleOpen=', articleOpen, 'button=', e.button);
   if (!started) return;
   if (articleOpen) return;
   if (e.button !== 0) return;
 
   raycaster.setFromCamera(mouse, camera);
   const hits = raycaster.intersectObjects(interactables, false);
+  console.log('[FeverLegacy] raycaster hits:', hits.length, hits.map(h => h.object.name || h.object.userData));
   if (hits.length === 0) return;
 
   const hit = hits[0];
