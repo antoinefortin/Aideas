@@ -9,9 +9,6 @@ A place where I just put code of stuff I made with AI
 - [MidiSketch](MidiSketch/) — Theory-driven MIDI arranger: pick a scale, build chord progressions, add bass and melody, preview and export MIDI. [▶ Run it](https://antoinefortin.github.io/Aideas/MidiSketch/)
 - [GuitarTune](GuitarTune/) — Chromatic guitar tuner with 25+ tuning presets (emo, metal, jazz, open, 7-string). FFT pitch detection via mic, reference tones, gauge. [▶ Run it](https://antoinefortin.github.io/Aideas/GuitarTune/)
 - [SilenceCut](Silencer/) — Remove silence from audio recordings directly in your browser. No uploads, no server. [▶ Run it](https://antoinefortin.github.io/Aideas/Silencer/)
-- [AudioDock](AudioDock/) — Windows C#/WPF app for batch-downloading YouTube audio as MP3 via yt-dlp and FFmpeg.
-- [Tabtone](tabtone/) — One-click Chrome tab audio recorder with local MP3 encoding and automatic filenames.
-- [Tabflow](tabflow/) — Per-tab equalizer, volume booster and local audio effects for Chrome.
 - [PodTube](PodTube/) — Turn YouTube videos into a podcast RSS feed. Add videos, generate a feed URL, subscribe in any podcast app. No server. [▶ Run it](https://antoinefortin.github.io/Aideas/PodTube/)
 
 ### 3D & Simulations
@@ -37,6 +34,12 @@ A place where I just put code of stuff I made with AI
 ### Games
 
 - [Cribbage](cribbage/) — Jeu de cribbage en français contre l’ordinateur, avec tuteur et pratique du compte. [▶ Jouer](https://antoinefortin.github.io/Aideas/cribbage/)
+
+### Desktop & Extensions
+
+- [AudioDock](AudioDock/) — Windows C#/WPF app for batch-downloading YouTube audio as MP3 via yt-dlp and FFmpeg.
+- [Tabtone](tabtone/) — One-click Chrome tab audio recorder with local MP3 encoding and automatic filenames.
+- [Tabflow](tabflow/) — Per-tab equalizer, volume booster and local audio effects for Chrome.
 
 ---
 
