@@ -790,6 +790,10 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Escape') closeArticle();
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
+/* prevent YouTube iframes from stealing keyboard focus */
+window.addEventListener('blur', () => {
+  setTimeout(() => { window.focus(); }, 50);
+});
 window.addEventListener('pointermove', onPointerMove);
 window.addEventListener('pointerdown', onPointerDown);
 window.addEventListener('resize', () => {
@@ -806,8 +810,11 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
+  /* ── use fixed dt fallback if clock returns 0 ──── */
+  const safeDt = dt > 0.001 ? dt : 0.016;
+
   /* ── keyboard look ────────────────────────────────── */
-  const lookSpeed = 1.5 * dt;
+  const lookSpeed = 1.5 * safeDt;
   if (keys['KeyA'] || keys['ArrowLeft']) lookX -= lookSpeed;
   if (keys['KeyD'] || keys['ArrowRight']) lookX += lookSpeed;
   if (keys['KeyW'] || keys['ArrowUp']) lookY = Math.min(0.6, lookY + lookSpeed);
@@ -815,8 +822,9 @@ function animate() {
 
   /* ── player movement (smooth lerp to target) ──────── */
   if (moving) {
-    playerPos.lerp(targetPos, 3 * dt);
-    if (playerPos.distanceTo(targetPos) < 0.1) {
+    const step = 4 * safeDt;
+    playerPos.lerp(targetPos, Math.min(step, 1));
+    if (playerPos.distanceTo(targetPos) < 0.15) {
       moving = false;
       playerPos.copy(targetPos);
     }
@@ -824,7 +832,7 @@ function animate() {
     const dir = new THREE.Vector3().subVectors(targetPos, playerPos);
     if (dir.length() > 0.1) {
       const targetAngle = Math.atan2(dir.x, dir.z);
-      lookX += (targetAngle - lookX) * 2 * dt;
+      lookX += (targetAngle - lookX) * 3 * safeDt;
     }
   }
 
